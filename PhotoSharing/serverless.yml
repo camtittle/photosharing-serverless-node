@@ -1,0 +1,217 @@
+service: photosharing
+
+# You can pin your business to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: eu-central-1
+  iamManagedPolicies:
+    - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - 's3:ListBucket'
+      Resource:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:s3:::'
+            - Ref: photoUploadsBucket
+    - Effect: 'Allow'
+      Action:
+        - 's3:PutObject'
+        - 's3:PutObjectAcl'
+      Resource:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:s3:::'
+            - Ref: photoUploadsBucket
+            - '/*'
+    - Effect: "Allow"
+      Action:
+        '*'
+      Resource:
+        '*'
+  environment:
+#    AWS_ACCESS_KEY_ID: 'AKIA5757RSCQKG7QJ2ED'
+#    AWS_SECRET_ACCESS_KEY: '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'
+#    AWS_REGION: 'eu-central-1'
+
+functions:
+  createPost:
+    handler: post/handler/post-handler.create
+    events:
+      - http:
+          path: posts
+          method: post
+
+  addComment:
+    handler: comment/handler/comment-handler.add
+    events:
+      - http:
+          path: comments
+          method: post
+
+  getCommentsByPost:
+    handler: comment/handler/comment-handler.get
+    events:
+      - http:
+          path: comments
+          method: get
+
+
+  publishEventDebug:
+    handler: eventbus/handler/eventbus-handler.publishDebug
+    events:
+      - http:
+          path: eventbus/publish
+          method: post
+
+  confirmEventDebug:
+    handler: eventbus/handler/eventbus-handler.confirmDebug
+    events:
+      - http:
+          path: eventbus/confirm
+          method: post
+
+  publishEvent:
+    handler: eventbus/handler/eventbus-handler.publish
+    name: publishEvent
+
+  dispatchEvent:
+    handler: eventbus/handler/eventbus-handler.dispatch
+    name: dispatchEvent
+
+  confirmEvent:
+    handler: eventbus/handler/eventbus-handler.confirm
+    name: confirmEvent
+
+  redispatchEvents:
+    handler: eventbus/handler/eventbus-handler.scheduledRedispatch
+    name: scheduledRedispatch
+    events:
+        - http:
+            path: eventbus/redispatch
+            method: post
+
+  demoSubscriber:
+    handler: demo-subscriber/demo-subscriber-handler.handler
+    name: demoSubscriber
+
+  postServiceEventHandler:
+    handler: post/handler/post-service-event-handler.handler
+    name: postServiceEventHandler
+
+  getEvents:
+    handler: eventbus/handler/eventbus-handler.getDebug
+    events:
+      - http:
+          path: eventbus/recent
+          method: get
+
+  generateStats:
+    handler: testing-utils/statgen.generateStats
+    events:
+      - http:
+          path: testing/stats
+          method: post
+
+
+# Cloudformation resources
+resources:
+  Resources:
+
+    photoUploadsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: photosharing-uploads-dev
+        AccessControl: Private
+        PublicAccessBlockConfiguration:
+          IgnorePublicAcls: FALSE
+          BlockPublicAcls: FALSE
+          RestrictPublicBuckets: TRUE
+          BlockPublicPolicy: TRUE
+
+
+    postsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: postsTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+
+    commentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: commentsTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: postId
+            AttributeType: S
+          - AttributeName: timestamp_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: postId
+            KeyType: HASH
+          - AttributeName: timestamp_id
+            KeyType: RANGE
+
+    eventsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: eventsTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: destination
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: destination
+            KeyType: RANGE
+
+    eventsDeadLetterTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: eventsDeadLetterTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: destination
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: destination
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+    start:
+      migrate: true
+      dbPath: "./"
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-dynamodb-local
+  - serverless-offline

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "preserveConstEnums": true,
+    "strictNullChecks": true,
+    "module": "commonjs",
+    "target": "es5",
+    "sourceMap": true,
+    "outDir": ".build",
+    "esModuleInterop": true,
+    "lib": ["es5", "es6"],
+    "rootDir": "./",
+    "strict": true,
+    "typeRoots": [
+      "node_modules/@types",
+      "@types"
+    ]
+  },
+  "exclude": [
+    "node_modules",
+    "@types"
+  ]
+}
