@@ -4,6 +4,7 @@ import {StatGenRequest} from "./model/statgen-request";
 import {EventRepository} from "../eventbus/data/event-repository";
 import {EventDBItem} from "../eventbus/domain/event-db-item";
 import {Topic} from "../shared/eventbus/topics/topic";
+import {CognitoService} from "../shared/cognito/cognito-service";
 
 export const generateStats = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
 
@@ -16,17 +17,35 @@ export const generateStats = async (event: APIGatewayEvent): Promise<APIGatewayP
         return Responses.badRequest('Parameters not valid. Found: \n' + JSON.stringify(request));
     }
 
+    console.log(event.requestContext.identity);
+
     const events = await getCommentsWithContent(request.commentContent);
     const receivedEvents = events.filter(x => x.receivedAt != null);
+    const undeliveredEvents = events.filter(x => x.receivedAt == null);
 
-    const earliestPublishTime = Math.min(...receivedEvents.map(x => x.time_stamp));
-    const latestReceivedAtTime = Math.max(...receivedEvents.map(x => x.receivedAt ? x.receivedAt : 0));
+    let earliestPublishTime = Infinity;
+    let latestReceivedAtTime = 0;
+    let averageDeliveryLatency = 0;
+    for (let event of receivedEvents) {
+        if (event.receivedAt && event.receivedAt > latestReceivedAtTime) latestReceivedAtTime = event.receivedAt;
+        if (event.time_stamp < earliestPublishTime) earliestPublishTime = event.time_stamp;
+        if (event.receivedAt) {
+            const deliveryLatency = event.receivedAt - event.time_stamp;
+            averageDeliveryLatency = (deliveryLatency + deliveryLatency) / 2;
+        }
+    }
     const elapsedTime = latestReceivedAtTime - earliestPublishTime;
     const elapsedTimeSeconds = elapsedTime / 1000;
     const count = receivedEvents.length;
     const throughput = count / elapsedTimeSeconds;
 
-    return Responses.Ok({throughput, elapsedTimeSeconds, count});
+    let groups: string[] = [];
+    if (event.requestContext.authorizer) {
+        groups = await CognitoService.getUserGroups(event.requestContext.authorizer.claims);
+    }
+
+    return Responses.Ok({throughput, elapsedTimeSeconds, count, averageDeliveryLatency,
+        undeliveredEvents: undeliveredEvents.length, authorizer: event.requestContext.authorizer, groups});
 };
 
 

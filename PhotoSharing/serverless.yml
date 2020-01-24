@@ -31,15 +31,11 @@ provider:
           - - 'arn:aws:s3:::'
             - Ref: photoUploadsBucket
             - '/*'
-    - Effect: "Allow"
+    - Effect: Allow
       Action:
-        '*'
+        - cognito-idp:AdminListGroupsForUser
       Resource:
-        '*'
-  environment:
-#    AWS_ACCESS_KEY_ID: 'AKIA5757RSCQKG7QJ2ED'
-#    AWS_SECRET_ACCESS_KEY: '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'
-#    AWS_REGION: 'eu-central-1'
+        Ref: CognitoArn
 
 functions:
   createPost:
@@ -119,12 +115,21 @@ functions:
       - http:
           path: testing/stats
           method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
 
 
 # Cloudformation resources
 resources:
-  Resources:
 
+  Parameters:
+    CognitoArn:
+      Type: String
+      Default: arn:aws:cognito-idp:eu-central-1:961937510560:userpool/eu-central-1_wRe0jKDuSs
+
+  Resources:
     photoUploadsBucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -202,6 +207,20 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+
+    ApiGatewayAuthorizer:
+      DependsOn:
+        - ApiGatewayRestApi
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        AuthorizerResultTtlInSeconds: 300
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: COGNITO_USER_POOLS
+        Name: Authorizer
+        ProviderARNs:
+          - Ref: CognitoArn
 
 custom:
   dynamodb:
