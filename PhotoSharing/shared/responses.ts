@@ -32,4 +32,14 @@ export class Responses {
             ),
         }
     }
+
+    public static Unauthorized(jsonBody?: any): APIGatewayProxyResult {
+        return {
+            statusCode: httpConstants.HTTP_STATUS_UNAUTHORIZED,
+            body: JSON.stringify(jsonBody,
+                null,
+                2
+            ),
+        }
+    }
 }

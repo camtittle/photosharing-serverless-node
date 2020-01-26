@@ -4,7 +4,7 @@ import {StatGenRequest} from "./model/statgen-request";
 import {EventRepository} from "../eventbus/data/event-repository";
 import {EventDBItem} from "../eventbus/domain/event-db-item";
 import {Topic} from "../shared/eventbus/topics/topic";
-import {CognitoService} from "../shared/cognito/cognito-service";
+import {CognitoUtils} from "../shared/cognito/cognito-utils";
 
 export const generateStats = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
 
@@ -16,8 +16,6 @@ export const generateStats = async (event: APIGatewayEvent): Promise<APIGatewayP
     if (!validateRequest(request)) {
         return Responses.badRequest('Parameters not valid. Found: \n' + JSON.stringify(request));
     }
-
-    console.log(event.requestContext.identity);
 
     const events = await getCommentsWithContent(request.commentContent);
     const receivedEvents = events.filter(x => x.receivedAt != null);
@@ -39,13 +37,8 @@ export const generateStats = async (event: APIGatewayEvent): Promise<APIGatewayP
     const count = receivedEvents.length;
     const throughput = count / elapsedTimeSeconds;
 
-    let groups: string[] = [];
-    if (event.requestContext.authorizer) {
-        groups = await CognitoService.getUserGroups(event.requestContext.authorizer.claims);
-    }
-
     return Responses.Ok({throughput, elapsedTimeSeconds, count, averageDeliveryLatency,
-        undeliveredEvents: undeliveredEvents.length, authorizer: event.requestContext.authorizer, groups});
+        undeliveredEvents: undeliveredEvents.length, authorizer: event.requestContext.authorizer});
 };
 
 

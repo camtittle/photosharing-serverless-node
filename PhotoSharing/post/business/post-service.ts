@@ -25,7 +25,7 @@ export class PostService {
     public async createPost(details: CreatePostDetails): Promise<Post> {
         const newPost: Post = {
             id: uuid(),
-            //postType: details.type,
+            postType: details.type,
             timestamp: new Date().getTime(),
             userId: details.userId,
             latitude: details.latitude,

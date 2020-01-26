@@ -3,8 +3,14 @@ import {Responses} from "../../shared/responses";
 import {AddCommentRequest} from "./model/add-comment-request";
 import {AddCommentDetails} from "../business/model/add-comment-details";
 import {CommentService} from "../business/comment-service";
+import {CognitoUtils} from "../../shared/cognito/cognito-utils";
 
 export const add = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+    const identity = CognitoUtils.getIdentity(event.requestContext);
+    if (!identity) {
+        return Responses.Unauthorized();
+    }
+
     if (event.body == null) {
         return Responses.badRequest()
     }
@@ -15,7 +21,7 @@ export const add = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult
     }
 
     const details: AddCommentDetails = {
-        userId: 'testId',
+        userId: identity.userId,
         postId: content.postId,
         postTimestamp: content.postTimestamp,
         content: content.content

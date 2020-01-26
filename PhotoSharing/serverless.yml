@@ -16,13 +16,6 @@ provider:
     - Effect: 'Allow'
       Action:
         - 's3:ListBucket'
-      Resource:
-        Fn::Join:
-          - ''
-          - - 'arn:aws:s3:::'
-            - Ref: photoUploadsBucket
-    - Effect: 'Allow'
-      Action:
         - 's3:PutObject'
         - 's3:PutObjectAcl'
       Resource:
@@ -33,9 +26,8 @@ provider:
             - '/*'
     - Effect: Allow
       Action:
-        - cognito-idp:AdminListGroupsForUser
-      Resource:
-        Ref: CognitoArn
+        - '*'
+      Resource: 'arn:aws:dynamodb:*:*:table/*'
 
 functions:
   createPost:
@@ -60,19 +52,19 @@ functions:
           method: get
 
 
-  publishEventDebug:
-    handler: eventbus/handler/eventbus-handler.publishDebug
-    events:
-      - http:
-          path: eventbus/publish
-          method: post
-
-  confirmEventDebug:
-    handler: eventbus/handler/eventbus-handler.confirmDebug
-    events:
-      - http:
-          path: eventbus/confirm
-          method: post
+#  publishEventDebug:
+#    handler: eventbus/handler/eventbus-handler.publishDebug
+#    events:
+#      - http:
+#          path: eventbus/publish
+#          method: post
+#
+#  confirmEventDebug:
+#    handler: eventbus/handler/eventbus-handler.confirmDebug
+#    events:
+#      - http:
+#          path: eventbus/confirm
+#          method: post
 
   publishEvent:
     handler: eventbus/handler/eventbus-handler.publish

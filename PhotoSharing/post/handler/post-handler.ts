@@ -4,10 +4,16 @@ import {CreatePostRequest, CreatePostType} from "./model/create-post-request";
 import {PostService} from "../business/post-service";
 import {CreatePostDetails} from "../business/model/create-post-details";
 import {PostType} from "../business/model/post-type";
+import {CognitoUtils} from "../../shared/cognito/cognito-utils";
 
 const postService = PostService.getInstance();
 
 export const create = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+    const identity = CognitoUtils.getIdentity(event.requestContext);
+    if (!identity) {
+        return Responses.Unauthorized();
+    }
+
     if (event.body == null) {
         return Responses.badRequest()
     }
@@ -18,7 +24,7 @@ export const create = async (event: APIGatewayEvent): Promise<APIGatewayProxyRes
     }
 
     const details: CreatePostDetails = {
-        userId: 'testId',
+        userId: identity.userId,
         type: getPostType(content.type),
         description: content.description,
         base64Image: content.base64Image,
