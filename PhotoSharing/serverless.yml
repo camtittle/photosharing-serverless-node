@@ -51,6 +51,13 @@ functions:
           path: comments
           method: get
 
+  updateProfile:
+    handler: profile/handler/profile-handler.update
+    events:
+      - http:
+          path: profile
+          method: post
+
 
 #  publishEventDebug:
 #    handler: eventbus/handler/eventbus-handler.publishDebug
@@ -133,7 +140,6 @@ resources:
           RestrictPublicBuckets: TRUE
           BlockPublicPolicy: TRUE
 
-
     postsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -196,6 +202,20 @@ resources:
             KeyType: HASH
           - AttributeName: destination
             KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+    profilesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: profilesTable
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
