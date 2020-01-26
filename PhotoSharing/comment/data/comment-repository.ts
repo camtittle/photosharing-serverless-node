@@ -29,12 +29,7 @@ export class CommentRepository {
     public async putComment(comment: Comment) {
         const dbItem = this.toDbItem(comment);
 
-        // Retry up to maxRetries in case of high demand
-        await retry(async () => {
-            await this.dynamoDbService.put(this.tableName, dbItem);
-        }, {
-            retries: this.maxRetries
-        });
+        await this.dynamoDbService.put(this.tableName, dbItem);
     }
 
     public async getComments(postId: string) {

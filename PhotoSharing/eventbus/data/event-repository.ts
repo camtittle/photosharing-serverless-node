@@ -17,22 +17,14 @@ export class EventRepository {
 
     public static async putEvents(events: EventDBItem[]) {
         const promises = events.map(dbItem =>
-            retry(async () => {
-                await this.dynamoDbService.put(this.tableName, dbItem);
-            }, {
-                retries: this.maxRetries
-            })
+            this.dynamoDbService.put(this.tableName, dbItem)
         );
 
         await Promise.all(promises);
     }
 
     public static async putDeadLetter(event: EventDBItem) {
-        await retry(async () => {
-            await this.dynamoDbService.put(this.deadLetterTableName, event);
-        }, {
-            retries: this.maxRetries
-        })
+        await this.dynamoDbService.put(this.deadLetterTableName, event);
     }
 
     public static async updateRetryCount(id: string, destination: string, count: number) {

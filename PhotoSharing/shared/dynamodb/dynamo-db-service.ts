@@ -9,6 +9,7 @@ import DeleteItemInput = DocumentClient.DeleteItemInput;
 import {Delete} from "./model/delete";
 import {ClientConfiguration} from "aws-sdk/clients/dynamodb";
 import UpdateItemInput = DocumentClient.UpdateItemInput;
+import retry from "async-retry";
 
 
 export class DynamoDbService {
@@ -16,6 +17,7 @@ export class DynamoDbService {
     private static instance: DynamoDbService;
 
     private dynamoDbClient: DynamoDb.DocumentClient;
+    private readonly maxRetries = 3;
 
     private constructor() {
         let options: ClientConfiguration = {};
@@ -47,7 +49,12 @@ export class DynamoDbService {
         };
 
         try {
-            await this.dynamoDbClient.put(params).promise();
+            // Retry up to maxRetries in case of high demand
+            await retry(async () => {
+                await this.dynamoDbClient.put(params).promise();
+            }, {
+                retries: this.maxRetries
+            });
         } catch (e) {
             console.error(e);
             throw new Error('Error putting new object in dynamoDb table');
