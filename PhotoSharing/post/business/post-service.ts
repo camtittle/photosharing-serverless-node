@@ -31,7 +31,8 @@ export class PostService {
             latitude: details.latitude,
             longitude: details.longitude,
             description: details.description,
-            commentCount: 0
+            commentCount: 0,
+            lastCommentEventTimestamp: 0
         };
 
         if (details.type === PostType.Image && details.base64Image) {
@@ -49,9 +50,10 @@ export class PostService {
         return await s3Service.uploadImage(userId, base64Image);
     }
 
-    public async updateCommentCount(postId: string, postTimestamp: number, count: number) {
+    public async updateCommentCount(postId: string, postTimestamp: number,
+                                    commentEventTimestamp: number, count: number) {
         console.log('updateCommentCount');
-        if (!postId || count == null) {
+        if (!postId || commentEventTimestamp === null || count === null) {
             throw new Error('postId and commentCount required');
         }
 
@@ -60,10 +62,12 @@ export class PostService {
             id: postId,
             timestamp: postTimestamp
         };
-        const expression = 'SET #count = :count';
-        const names = { '#count': 'commentCount' };
-        const values = { ':count': count };
-        await dynamoDbService.update(this.tableName, keys, expression, names, values);
+        const expression = 'SET #count = :count, #lastCommentEventTimestamp = :eventTimestamp';
+        // condition ensures that events that arrive out of order are ignored - only latest events processed
+        const conditionExpression = 'attribute_not_exists(#lastCommentEventTimestamp) OR #lastCommentEventTimestamp < :eventTimestamp';
+        const names = { '#count': 'commentCount', '#lastCommentEventTimestamp': 'lastCommentEventTimestamp' };
+        const values = { ':count': count, ':eventTimestamp': commentEventTimestamp };
+        await dynamoDbService.update(this.tableName, keys, expression, names, values, conditionExpression);
     }
 
     private publishEvent(post: Post, action: PostAction) {

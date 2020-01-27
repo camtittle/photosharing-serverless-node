@@ -81,7 +81,8 @@ export class DynamoDbService {
         await this.dynamoDbClient.delete(dynamoParams).promise();
     }
 
-    public async update(table: string, keys: any, updateExpression: string, attributeNames: any, attributeValues: any) {
+    public async update(table: string, keys: any, updateExpression: string, attributeNames: any,
+                        attributeValues: any, conditionExpression?: string) {
         if (!table || !updateExpression || !keys || !attributeNames || !attributeValues) {
             throw new Error('Cannot perform UPDATE. Missing params. Found: ' +
                 JSON.stringify({table, keys, updateExpression, attributeNames, attributeValues}));
@@ -95,7 +96,20 @@ export class DynamoDbService {
             ExpressionAttributeValues: attributeValues
         };
 
-        await this.dynamoDbClient.update(params).promise();
+        if (conditionExpression) {
+            params.ConditionExpression = conditionExpression;
+        }
+
+        try {
+            await this.dynamoDbClient.update(params).promise();
+        } catch (e) {
+            // Silently catch conditional check failed as this is OK
+            if (e.code && e.code === 'ConditionalCheckFailedException') {
+                console.log('Conditional Expression was false during UPDATE to item: ', {table, keys});
+            } else {
+                throw e;
+            }
+        }
     }
 
     // Get items with particular paritionKey, and whose range key is between 2 values

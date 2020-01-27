@@ -10,6 +10,7 @@ export interface Post {
     longitude: number;
     description: string;
     commentCount: number;
+    lastCommentEventTimestamp: number;
 }
 
 

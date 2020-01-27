@@ -22,14 +22,18 @@ const handleCommentEvent = async (event: Event) => {
     const postService = PostService.getInstance();
     console.log(`Post Service received comment event '${body.commentId}'`);
 
+    // TODO validate comment event fields
+
     if (body.action === CommentAction.Add) {
         // Update Post Service's commentCount value for this post
         try {
-            await postService.updateCommentCount(body.postId, body.postTimestamp, body.commentCount);
+            await postService.updateCommentCount(body.postId, body.postTimestamp, event.timestamp, body.commentCount);
         } catch (e) {
             console.error('Unable to update comment count for post ID ' + body.postId);
             console.error(e);
         }
+    } else {
+        console.error('Cannot handle comment event with unrecognised action: ' + body.action);
     }
 
     await EventBusService.confirm(event.id, DESTINATION_NAME);
