@@ -5,5 +5,5 @@ export interface LessThanScan<ItemType> {
 
 export interface GenericScan<ItemType> {
     filterString?: string;
-    attributeValues: any;
+    attributeValues?: any;
 }

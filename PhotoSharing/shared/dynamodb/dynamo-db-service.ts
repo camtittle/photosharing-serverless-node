@@ -181,12 +181,12 @@ export class DynamoDbService {
         return result.Items == undefined ? [] : result.Items as ItemType[];
     }
 
-    public async scan<ItemType>(table: string, params: GenericScan<ItemType>) {
+    public async scan<ItemType>(table: string, params?: GenericScan<ItemType>) {
         const dynamoParams: ScanInput = {
             TableName: table
         };
 
-        if (params.filterString && params.attributeValues) {
+        if (params && params.filterString && params.attributeValues) {
             dynamoParams.FilterExpression = params.filterString;
             dynamoParams.ExpressionAttributeValues = params.attributeValues;
         }

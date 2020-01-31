@@ -37,6 +37,13 @@ functions:
           path: posts
           method: post
 
+  getDemoPost:
+    handler: post/handler/post-handler.getDemo
+    events:
+      - http:
+          path: posts
+          method: get
+
   addComment:
     handler: comment/handler/comment-handler.add
     events:

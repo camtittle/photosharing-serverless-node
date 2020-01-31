@@ -37,6 +37,14 @@ export const create = async (event: APIGatewayEvent): Promise<APIGatewayProxyRes
     return Responses.Ok(post);
 };
 
+export const getDemo = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+    const posts = await postService.getPosts();
+    const response = {
+        posts: posts
+    };
+    return Responses.Ok(response);
+};
+
 function getPostType(createPostType: CreatePostType): PostType {
     switch (createPostType) {
         case CreatePostType.Image:

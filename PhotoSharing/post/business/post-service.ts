@@ -5,6 +5,7 @@ import {Post} from "./model/post";
 import {v4 as uuid} from 'uuid';
 import {PostAction, PostTopicEvent} from "../../shared/eventbus/topics/post-topic";
 import {PostType} from "./model/post-type";
+import {GenericScan} from "../../shared/dynamodb/model/scan";
 
 export class PostService {
 
@@ -68,6 +69,11 @@ export class PostService {
         const names = { '#count': 'commentCount', '#lastCommentEventTimestamp': 'lastCommentEventTimestamp' };
         const values = { ':count': count, ':eventTimestamp': commentEventTimestamp };
         await dynamoDbService.update(this.tableName, keys, expression, names, values, conditionExpression);
+    }
+
+    public async getPosts(): Promise<Post[]> {
+        const dynamoDbService = DynamoDbService.getInstance();
+        return dynamoDbService.scan<Post>(this.tableName);
     }
 
     private publishEvent(post: Post, action: PostAction) {

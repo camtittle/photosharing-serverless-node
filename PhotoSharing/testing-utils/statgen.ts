@@ -4,7 +4,6 @@ import {StatGenRequest} from "./model/statgen-request";
 import {EventRepository} from "../eventbus/data/event-repository";
 import {EventDBItem} from "../eventbus/domain/event-db-item";
 import {Topic} from "../shared/eventbus/topics/topic";
-import {CognitoUtils} from "../shared/cognito/cognito-utils";
 
 export const generateStats = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
 
