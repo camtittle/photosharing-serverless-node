@@ -5,7 +5,8 @@ import {Post} from "./model/post";
 import {v4 as uuid} from 'uuid';
 import {PostAction, PostTopicEvent} from "../../shared/eventbus/topics/post-topic";
 import {PostType} from "./model/post-type";
-import {GenericScan} from "../../shared/dynamodb/model/scan";
+import {PartitionKeyQuery} from "../../shared/dynamodb/model/query";
+import {PostResponse} from "../handler/model/post-response";
 
 export class PostService {
 
@@ -76,6 +77,22 @@ export class PostService {
         return dynamoDbService.scan<Post>(this.tableName);
     }
 
+    public async getPost(id: string): Promise<Post | null> {
+
+        const dynamoDbService = DynamoDbService.getInstance();
+
+        const query: PartitionKeyQuery = {
+            partitionKeyName: 'id',
+            partitionKeyValue: id
+        };
+        const posts = await dynamoDbService.queryPartitionKey<Post>(this.tableName, query);
+        if (posts.length < 1) {
+            return null;
+        }
+
+        return posts[0];
+    }
+
     private publishEvent(post: Post, action: PostAction) {
         const event: PostTopicEvent = {
             action: action,
@@ -86,6 +103,5 @@ export class PostService {
             longitude: post.longitude,
             description: post.description
         }
-
     }
 }

@@ -5,6 +5,8 @@ import {PostService} from "../business/post-service";
 import {CreatePostDetails} from "../business/model/create-post-details";
 import {PostType} from "../business/model/post-type";
 import {CognitoUtils} from "../../shared/cognito/cognito-utils";
+import {Post} from "../business/model/post";
+import {PostResponse} from "./model/post-response";
 
 const postService = PostService.getInstance();
 
@@ -37,6 +39,21 @@ export const create = async (event: APIGatewayEvent): Promise<APIGatewayProxyRes
     return Responses.Ok(post);
 };
 
+export const getSingle = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+    if (!event.pathParameters || !event.pathParameters.id) {
+        return Responses.badRequest('ID and timestamp required')
+    }
+
+    const id = event.pathParameters.id;
+    const post = await postService.getPost(id);
+
+    if (post == null){
+        return Responses.notFound();
+    }
+
+    return Responses.Ok(mapPostToResponse(post));
+};
+
 export const getDemo = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
     const posts = await postService.getPosts();
     const response = {
@@ -59,4 +76,19 @@ function getPostType(createPostType: CreatePostType): PostType {
 function validateModel(model: CreatePostRequest): boolean {
     return ((model.type === CreatePostType.Image && !!model.base64Image) || model.type === CreatePostType.Text)
         && !!model.latitude && !!model.longitude;
+}
+
+
+function mapPostToResponse(post: Post): PostResponse {
+    return {
+        id: post.id,
+        timestamp: post.timestamp,
+        latitude: post.latitude,
+        longitude: post.longitude,
+        description: post.description,
+        commentCount: post.commentCount,
+        imageUrl: post.imageUrl,
+        postType: post.postType,
+        userId: post.userId
+    }
 }

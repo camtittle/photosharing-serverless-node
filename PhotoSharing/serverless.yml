@@ -36,11 +36,28 @@ functions:
       - http:
           path: posts
           method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+
+  getSinglePost:
+    handler: post/handler/post-handler.getSingle
+    events:
+      - http:
+          path: posts/{id}
+          method: get
+          request:
+            parameters:
+              path:
+                id: true
+
 
   getDemoPost:
     handler: post/handler/post-handler.getDemo
     events:
       - http:
+
           path: posts
           method: get
 
@@ -151,7 +168,7 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: postsTable
-        BillingMode: PAY_PER_REQUEST
+        #BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -162,12 +179,15 @@ resources:
             KeyType: HASH
           - AttributeName: timestamp
             KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
 
     commentsTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: commentsTable
-        BillingMode: PAY_PER_REQUEST
+        #BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: postId
             AttributeType: S
@@ -178,12 +198,15 @@ resources:
             KeyType: HASH
           - AttributeName: timestamp_id
             KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
 
     eventsTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: eventsTable
-        BillingMode: PAY_PER_REQUEST
+        #BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -194,6 +217,9 @@ resources:
             KeyType: HASH
           - AttributeName: destination
             KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
 
     eventsDeadLetterTable:
       Type: AWS::DynamoDB::Table

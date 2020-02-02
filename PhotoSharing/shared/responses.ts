@@ -42,4 +42,18 @@ export class Responses {
             ),
         }
     }
+
+    public static notFound(jsonBody?: any): APIGatewayProxyResult {
+        return this.getResultWithStatusCode(jsonBody, httpConstants.HTTP_STATUS_NOT_FOUND);
+    }
+
+    private static getResultWithStatusCode(jsonBody: any, statusCode: number): APIGatewayProxyResult {
+        return {
+            statusCode: statusCode,
+            body: JSON.stringify(jsonBody,
+                null,
+                2
+            ),
+        }
+    }
 }
