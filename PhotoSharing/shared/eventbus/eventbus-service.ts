@@ -26,6 +26,7 @@ export class EventBusService {
             const result = await LambdaService.invoke(this.publishLambdaName, event);
             console.log(result);
         } catch (err) {
+            console.error(err);
             throw new Error('Error whilst invoking PublishEvent lambda. Payload: ' + JSON.stringify(event));
         }
 
@@ -46,6 +47,7 @@ export class EventBusService {
             const result = await LambdaService.invoke(this.confirmLambdaName, request);
             console.log(result);
         } catch (err) {
+            console.error(err);
             throw new Error('Error whilst invoking ConfirmEvent lambda. Payload: ' + JSON.stringify(request));
         }
     }

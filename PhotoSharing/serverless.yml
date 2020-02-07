@@ -28,6 +28,10 @@ provider:
       Action:
         - '*'
       Resource: 'arn:aws:dynamodb:*:*:table/*'
+    - Effect: Allow
+      Action:
+        - 'lambda:InvokeFunction'
+      Resource: 'arn:aws:lambda:*:*:function:*'
 
 functions:
   createPost:
@@ -57,7 +61,6 @@ functions:
     handler: post/handler/post-handler.getDemo
     events:
       - http:
-
           path: posts
           method: get
 
@@ -67,6 +70,10 @@ functions:
       - http:
           path: comments
           method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
 
   getCommentsByPost:
     handler: comment/handler/comment-handler.get
@@ -266,6 +273,8 @@ resources:
         Name: Authorizer
         ProviderARNs:
           - Ref: CognitoArn
+
+            
 
 custom:
   dynamodb:
