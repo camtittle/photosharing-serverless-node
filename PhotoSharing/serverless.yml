@@ -89,6 +89,13 @@ functions:
           path: profile
           method: post
 
+  testElasticsearchIndex:
+    handler: feed/feed-service-handler.testIndex
+    events:
+      - http:
+          path: feed/testindex
+          method: post
+
 
 #  publishEventDebug:
 #    handler: eventbus/handler/eventbus-handler.publishDebug
@@ -274,7 +281,31 @@ resources:
         ProviderARNs:
           - Ref: CognitoArn
 
-            
+    ElasticsearchDomain:
+      Type: AWS::Elasticsearch::Domain
+      Properties:
+        ElasticsearchVersion: "7.1"
+        ElasticsearchClusterConfig:
+          DedicatedMasterEnabled: "false"
+          InstanceCount: "1"
+          InstanceType: "t2.small.elasticsearch"
+        EBSOptions:
+          EBSEnabled: true
+          VolumeType: "gp2"
+          VolumeSize: 10
+        AccessPolicies:
+          # TEMPORARY ACCESS POLICY - NO SECURITY!
+          Version: "2012-10-17"
+          Statement:
+            -
+              Effect: "Allow"
+              Principal:
+                AWS: "*"
+              Action:
+                "es:*"
+              Resource: "arn:aws:es:*:*:domain/*/*"
+
+
 
 custom:
   dynamodb:

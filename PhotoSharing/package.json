@@ -9,6 +9,7 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^7.5.1",
     "@types/async-retry": "^1.4.1",
     "async-retry": "^1.2.3",
     "aws-sdk": "2.589.0",

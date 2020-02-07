@@ -10,6 +10,7 @@ import {Delete} from "./model/delete";
 import {ClientConfiguration} from "aws-sdk/clients/dynamodb";
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import retry from "async-retry";
+import {isRunningLocally} from "../EnvironmentUtil";
 
 
 export class DynamoDbService {
@@ -21,7 +22,7 @@ export class DynamoDbService {
 
     private constructor() {
         let options: ClientConfiguration = {};
-        if (process.env.IS_OFFLINE) {
+        if (isRunningLocally()) {
             options = {
                 region: 'localhost',
                 endpoint: 'http://localhost:8000'
