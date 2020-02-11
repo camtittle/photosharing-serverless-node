@@ -3,8 +3,8 @@ import {Topic, TopicToEventMap} from "../shared/eventbus/topics/topic";
 import {PostTopicEvent} from "../shared/eventbus/topics/post-topic";
 import {CommentTopicEvent} from "../shared/eventbus/topics/comment-topic";
 import {EventBusService} from "../shared/eventbus/eventbus-service";
+import {Destinations} from "../shared/eventbus/destinations";
 
-const DESTINATION_NAME = 'demoSubscriber';
 
 export const handler = async (event: Event) => {
 
@@ -16,7 +16,7 @@ export const handler = async (event: Event) => {
             console.log(`Subscriber received post event saying '${body.description}'`);
 
             // Once event handled successfully, confirm delivery
-            await EventBusService.confirm(event.id, DESTINATION_NAME);
+            await EventBusService.confirm(event.id, Destinations.demoSubscriber.handlerFunctionName);
             break;
         }
         case Topic.Comment: {
@@ -25,7 +25,7 @@ export const handler = async (event: Event) => {
             console.log(`Subscriber received post comment on postId '${body.postId}'`);
 
             // Once event handled successfully, confirm delivery
-            await EventBusService.confirm(event.id, DESTINATION_NAME);
+            await EventBusService.confirm(event.id, Destinations.demoSubscriber.handlerFunctionName);
             break;
         }
 

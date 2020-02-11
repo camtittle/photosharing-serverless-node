@@ -88,13 +88,24 @@ functions:
       - http:
           path: profile
           method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
 
-  testElasticsearchIndex:
-    handler: feed/feed-service-handler.testIndex
+  getProfilesBatch:
+    handler: profile/handler/profile-handler.batchGet
     events:
       - http:
-          path: feed/testindex
-          method: post
+          path: profile
+          method: get
+
+  getFeed:
+    handler: feed/feed-service-handler.get
+    events:
+      - http:
+          path: feed
+          method: get
 
 
 #  publishEventDebug:
@@ -138,6 +149,10 @@ functions:
   postServiceEventHandler:
     handler: post/handler/post-service-event-handler.handler
     name: postServiceEventHandler
+
+  feedServiceEventHandler:
+    handler: feed/feed-service-event-handler.handler
+    name: feedServiceEventHandler
 
   getEvents:
     handler: eventbus/handler/eventbus-handler.getDebug

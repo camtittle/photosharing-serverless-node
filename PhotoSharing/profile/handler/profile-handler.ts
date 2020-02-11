@@ -34,6 +34,22 @@ export const update = async (event: APIGatewayEvent): Promise<APIGatewayProxyRes
     }
 };
 
+export const batchGet = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+    if (!event.queryStringParameters || !event.queryStringParameters.userIds) {
+        return Responses.badRequest('Missing userIds parameter');
+    }
+
+    const userIds = event.queryStringParameters.userIds.split(',') as string[];
+    if (userIds.length < 1) {
+        return Responses.badRequest('Error parsing userIds. Please provide comma-separated list');
+    }
+
+    const profiles = await ProfileRepository.getProfiles(userIds);
+
+    return Responses.Ok(profiles);
+};
+
+
 function validateModel(model: SetProfileRequest): boolean {
     return !!model.name;
 }

@@ -3,8 +3,7 @@ import {Topic} from "../../shared/eventbus/topics/topic";
 import {EventBusService} from "../../shared/eventbus/eventbus-service";
 import {CommentAction, CommentTopicEvent} from "../../shared/eventbus/topics/comment-topic";
 import {PostService} from "../business/post-service";
-
-const DESTINATION_NAME = 'postServiceEventHandler';
+import {Destinations} from "../../shared/eventbus/destinations";
 
 export const handler = async (event: Event) => {
 
@@ -36,5 +35,5 @@ const handleCommentEvent = async (event: Event) => {
         console.error('Cannot handle comment event with unrecognised action: ' + body.action);
     }
 
-    await EventBusService.confirm(event.id, DESTINATION_NAME);
+    await EventBusService.confirm(event.id, Destinations.postService.handlerFunctionName);
 };

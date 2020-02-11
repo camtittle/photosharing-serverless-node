@@ -1,4 +1,5 @@
 import {Topic} from "../shared/eventbus/topics/topic";
+import {Destinations} from "../shared/eventbus/destinations";
 
 export interface Subscription {
     functionName: string;
@@ -6,11 +7,11 @@ export interface Subscription {
 
 const subscriptions: {[topic: string]: Subscription[]} = {
     [Topic.Post]: [
-        {functionName: 'testFunction'},
+        {functionName: Destinations.feedService.handlerFunctionName},
     ],
     [Topic.Comment]: [
-        {functionName: 'demoSubscriber'},
-        {functionName: 'postServiceEventHandler'}
+        {functionName: Destinations.postService.handlerFunctionName},
+        {functionName: Destinations.demoSubscriber.handlerFunctionName}
     ]
 };
 

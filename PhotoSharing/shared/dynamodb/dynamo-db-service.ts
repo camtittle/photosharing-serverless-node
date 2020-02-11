@@ -11,6 +11,8 @@ import {ClientConfiguration} from "aws-sdk/clients/dynamodb";
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import retry from "async-retry";
 import {isRunningLocally} from "../EnvironmentUtil";
+import BatchGetItemInput = DocumentClient.BatchGetItemInput;
+import KeysAndAttributes = DocumentClient.KeysAndAttributes;
 
 
 export class DynamoDbService {
@@ -80,6 +82,30 @@ export class DynamoDbService {
         }
 
         await this.dynamoDbClient.delete(dynamoParams).promise();
+    }
+
+    public async batchGet<ItemType>(table: string, keys: {[attributeName: string]: string}[]): Promise<ItemType[]> {
+        if (!table || !keys) {
+            throw new Error('Cannot perform BATCH GET. Missing params. Found: ' +
+                JSON.stringify({tableName: table, keys}));
+        }
+
+        const params: BatchGetItemInput = {
+            RequestItems: {
+                [table]: {
+                    Keys: keys
+                }
+            }
+        };
+
+        const result = await this.dynamoDbClient.batchGet(params).promise();
+        if (result.Responses && result.Responses[table]) {
+            const items = result.Responses[table];
+            return result.Responses[table] as ItemType[];
+        } else {
+            console.error('Error performing BATCH GET. Unprocessed items: ', result.UnprocessedKeys);
+            throw Error('Error performing BATCH GET.');
+        }
     }
 
     public async update(table: string, keys: any, updateExpression: string, attributeNames: any,

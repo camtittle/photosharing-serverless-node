@@ -6,7 +6,8 @@ import {v4 as uuid} from 'uuid';
 import {PostAction, PostTopicEvent} from "../../shared/eventbus/topics/post-topic";
 import {PostType} from "./model/post-type";
 import {PartitionKeyQuery} from "../../shared/dynamodb/model/query";
-import {PostResponse} from "../handler/model/post-response";
+import {EventBusService} from "../../shared/eventbus/eventbus-service";
+import {Topic} from "../../shared/eventbus/topics/topic";
 
 export class PostService {
 
@@ -43,6 +44,8 @@ export class PostService {
 
         const dynamoDbService = DynamoDbService.getInstance();
         await dynamoDbService.put(this.tableName, newPost);
+
+        await this.publishEvent(newPost, PostAction.Create);
 
         return newPost;
     }
@@ -93,15 +96,19 @@ export class PostService {
         return posts[0];
     }
 
-    private publishEvent(post: Post, action: PostAction) {
+    private async publishEvent(post: Post, action: PostAction) {
         const event: PostTopicEvent = {
             action: action,
             id: post.id,
+            userId: post.userId,
             timestamp: post.timestamp,
             imageUrl: post.imageUrl,
             latitude: post.latitude,
             longitude: post.longitude,
-            description: post.description
-        }
+            description: post.description,
+            commentCount: 0
+        };
+
+        await EventBusService.publish(Topic.Post, event);
     }
 }
