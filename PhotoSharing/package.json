@@ -3,17 +3,19 @@
     "@types/aws-lambda": "^8.10.36",
     "@types/node": "^12.12.12",
     "@types/uuid": "^3.4.6",
-    "serverless": "1.58.0",
-    "serverless-offline": "5.12.0",
+    "serverless": "1.60.0",
+    "serverless-dynamodb-local": "0.2.35",
+    "serverless-offline": "5.12.1",
     "serverless-plugin-typescript": "1.1.9",
-    "typescript": "^3.7.2"
+    "typescript": "^3.7.2",
+    "@types/async-retry": "^1.4.1",
+    "@types/colors": "^1.2.1"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^7.5.1",
-    "@types/async-retry": "^1.4.1",
     "async-retry": "^1.2.3",
     "aws-sdk": "2.589.0",
-    "serverless-dynamodb-local": "0.2.35",
+    "colors": "^1.4.0",
     "uuid": "^3.3.3"
   }
 }

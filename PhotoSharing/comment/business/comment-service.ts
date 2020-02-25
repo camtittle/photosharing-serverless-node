@@ -2,15 +2,17 @@ import {AddCommentDetails} from "./model/add-comment-details";
 import {CommentRepository} from "../data/comment-repository";
 import {Comment} from "./model/comment";
 import {v4 as uuid} from 'uuid';
+import {CommentAction, CommentTopicEvent} from "../../shared/eventbus/topics/comment-topic";
+import Log from "../../shared/logging/log";
 import {EventBusService} from "../../shared/eventbus/eventbus-service";
 import {Topic} from "../../shared/eventbus/topics/topic";
-import {CommentAction, CommentTopicEvent} from "../../shared/eventbus/topics/comment-topic";
 
 export class CommentService {
 
     private static instance: CommentService;
 
     private readonly commentRepository: CommentRepository;
+    private readonly tag = 'CommentService';
 
     private constructor() {
         this.commentRepository = CommentRepository.getInstance();
@@ -39,12 +41,25 @@ export class CommentService {
             content: details.content
         };
 
-        console.log(`Adding comment ${comment.id} to post ID ${comment.postId}`);
+        Log(this.tag, `Adding comment ${comment.id} to post ID ${comment.postId}`);
         await this.commentRepository.putComment(comment);
-        console.log(`Successfully added comment ${comment.id} to post ID ${comment.postId}`);
 
+        await this.publishNewCommentEvent(comment);
+
+        return comment;
+    }
+
+    public async getByPost(postId: string): Promise<Comment[]> {
+        if (!postId) {
+            throw new Error("Cannot get comments: Missing postId");
+        }
+        Log(this.tag, 'Fetching comments for post ID', postId)
+        return this.commentRepository.getComments(postId);
+    }
+
+    private async publishNewCommentEvent(comment: Comment) {
         // Get new total number of comments
-        const commentCount = await this.getCommentCount(details.postId);
+        const commentCount = await this.getCommentCount(comment.postId);
 
         // Publish event
         const event: CommentTopicEvent = {
@@ -56,19 +71,15 @@ export class CommentService {
             timestamp: comment.timestamp,
             commentCount: commentCount
         };
+
+        Log(this.tag, 'Publishing event to Comment topic with new commentCount:');
+        Log(this.tag, event);
+
         await EventBusService.publish(Topic.Comment, event);
-
-        return comment;
-    }
-
-    public async getByPost(postId: string): Promise<Comment[]> {
-        if (!postId) {
-            throw new Error("Cannot get comments: Missing postId");
-        }
-        return this.commentRepository.getComments(postId);
     }
 
     private async getCommentCount(postId: string) {
+        Log(this.tag, 'Getting comment count for post ID', postId);
         const comments = await this.getByPost(postId);
         return comments.length;
     }

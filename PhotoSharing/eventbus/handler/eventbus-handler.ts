@@ -11,18 +11,23 @@ import {PublishEventRequest} from "./model/publish-event-request";
 import {DispatchEventRequest} from "./model/dispatch-event-request";
 import {LambdaService} from "../../shared/lambda/lambda-service";
 import {Topic} from "../../shared/eventbus/topics/topic";
+import Log from "../../shared/logging/log";
+import {isRunningLocally} from "../../shared/EnvironmentUtil";
 
 const DISPATCHER_FUNCTION_NAME = 'dispatchEvent';
 const MAX_DISPATCH_RETRIES = 3;
+const tag = 'EventBusHandler';
 
 export const publish = async (eventToPublish: PublishEventRequest, context: Context) => {
     if (!eventToPublish.id || !eventToPublish.timestamp || !eventToPublish.topic || !eventToPublish.body) {
         throw new Error("Cannot publish event: missing event parameters. Found: " + JSON.stringify(eventToPublish));
     }
 
+    Log(tag, 'Publishing event to TOPIC ' + eventToPublish.topic + ' with event body:\n', eventToPublish.body);
+
     const subs = getSubscriptionsForTopic(eventToPublish.topic);
     if (subs.length < 1) {
-        console.log(`Event ${eventToPublish.id} for topic ${eventToPublish.topic} has no subscriptions. Cancelling publish`);
+        console.log(`Event ${eventToPublish.id} for TOPIC ${eventToPublish.topic} has no subscriptions. Cancelling publish`);
         return;
     }
 
@@ -35,6 +40,7 @@ export const publish = async (eventToPublish: PublishEventRequest, context: Cont
         retryCount: 0,
         receivedAt: null
     }));
+    Log(tag, 'Generated ', eventItems.length, ' event items for event ID ' + eventToPublish.id);
 
     await EventRepository.putEvents(eventItems);
 
@@ -47,24 +53,27 @@ export const publish = async (eventToPublish: PublishEventRequest, context: Cont
     };
 
     // invoke dispatcher asynchronously
+    Log(tag, 'Passing DispatchRequest to dispatcher\n', dispatchRequest);
     await LambdaService.invokeAsync(DISPATCHER_FUNCTION_NAME, dispatchRequest);
+
+    return 1;
 };
 
 export const dispatch = async (eventToDispatch: DispatchEventRequest, context: Context) => {
-    console.log('Dispatcher function started');
     await EventDispatcher.dispatch(eventToDispatch);
 
 };
 
 export const scheduledRedispatch = async (context: Context) => {
-    console.log('Scheduled re-dispatcher function started');
+    Log(tag ,'Scheduled re-dispatcher function started');
 
-    // Get un-dispatched events
-    const beforeNumberOfMinutes = 2;
+    // When not running locally, use a 2 min window to give the subscriber chance to confirm receipt of event
+    const beforeNumberOfMinutes = isRunningLocally() ? 0 : 2;
     const beforeTimestamp = new Date(new Date().getTime() - beforeNumberOfMinutes*60000).getTime();
 
     const events = await EventRepository.getUndeliveredEvents(beforeTimestamp);
-    console.log(events);
+    Log(tag, 'Found', events.length, 'events for re-dispatch');
+    Log(tag, 'Event IDs:', events.map(x => x.id));
 
     const eventsToDelete: EventDBItem[] = [];
     const eventsToRetry: EventDBItem[] = [];
@@ -73,7 +82,7 @@ export const scheduledRedispatch = async (context: Context) => {
     // Retry tasks
     const tasks: Promise<void>[] = [];
     eventsToRetry.forEach(event => {
-        console.log('Attempting to redispatch event ' + event.id);
+        Log(tag, 'Attempting to redispatch event ' + event.id);
 
         event.retryCount++;
         tasks.push(EventRepository.updateRetryCount(event.id, event.destination, event.retryCount));
@@ -93,11 +102,9 @@ export const scheduledRedispatch = async (context: Context) => {
     eventsToDelete.forEach(async event => {
         tasks.push(new Promise<void>(async resolve => {
             try {
-                console.log('Attempting to move event ' + event.id + ' to dead letter store');
+                Log(tag, 'Event', event.id, 'reached MAX_RETRIES count. Deleting...');
                 await EventRepository.putDeadLetter(event);
-                // TODO: this actually deletes it - is this method name obvious?
-                await EventRepository.markEventReceived(event.id, event.destination);
-                console.log('Successfully moved event ' + event.id + ' to dead letter store');
+                await EventRepository.markEventReceived(event.id, event.destination, true);
             } catch {
                 console.error('Unable to add event ' + event.id + ' to dead letter store.');
             } finally {
@@ -107,24 +114,32 @@ export const scheduledRedispatch = async (context: Context) => {
     });
 
     await Promise.all(tasks);
+
+    return 1;
 };
 
 export const confirm = async (eventToConfirm: ConfirmEventRequest, context: Context) => {
+    Log(tag, 'Attempting to confirm receipt of EVENT', eventToConfirm.eventId, 'by', eventToConfirm.destination);
+
     if (!eventToConfirm.eventId || !eventToConfirm.destination) {
         throw new Error("Cannot confirm event: missing event parameters. Found: " + JSON.stringify(eventToConfirm));
     }
 
     await EventRepository.markEventReceived(eventToConfirm.eventId, eventToConfirm.destination);
+
+    return 1;
 };
 
 // HTTP entry for publish function, used for debugging
 export const publishDebug = async (event: APIGatewayEvent) => {
-    if (event.body == null) {
+    if (event.body == null ) {
         return Responses.badRequest();
     }
 
     const eventToPublish: Event = JSON.parse(event.body);
     await EventBusService.publish(eventToPublish.topic, eventToPublish.body);
+
+    return Responses.Ok();
 };
 
 export const confirmDebug = async (event: APIGatewayEvent) => {
@@ -134,4 +149,6 @@ export const confirmDebug = async (event: APIGatewayEvent) => {
 
     const body = JSON.parse(event.body);
     await EventBusService.confirm(body.eventId, body.destination);
+
+    return Responses.Ok();
 };

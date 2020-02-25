@@ -4,6 +4,9 @@ import {EventBusService} from "../../shared/eventbus/eventbus-service";
 import {CommentAction, CommentTopicEvent} from "../../shared/eventbus/topics/comment-topic";
 import {PostService} from "../business/post-service";
 import {Destinations} from "../../shared/eventbus/destinations";
+import Log from "../../shared/logging/log";
+
+const tag = "PostServiceEventHandler";
 
 export const handler = async (event: Event) => {
 
@@ -19,9 +22,7 @@ export const handler = async (event: Event) => {
 const handleCommentEvent = async (event: Event) => {
     const body = event.body as CommentTopicEvent;
     const postService = PostService.getInstance();
-    console.log(`Post Service received comment event '${body.commentId}'`);
-
-    // TODO validate comment event fields
+    Log(tag, `Received comment event '${body.commentId}'`);
 
     if (body.action === CommentAction.Add) {
         // Update Post Service's commentCount value for this post
@@ -35,5 +36,6 @@ const handleCommentEvent = async (event: Event) => {
         console.error('Cannot handle comment event with unrecognised action: ' + body.action);
     }
 
+    Log(tag, 'Confirming receipt of event...');
     await EventBusService.confirm(event.id, Destinations.postService.handlerFunctionName);
 };

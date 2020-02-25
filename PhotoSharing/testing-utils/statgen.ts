@@ -16,7 +16,15 @@ export const generateStats = async (event: APIGatewayEvent): Promise<APIGatewayP
         return Responses.badRequest('Parameters not valid. Found: \n' + JSON.stringify(request));
     }
 
-    const events = await getCommentsWithContent(request.commentContent);
+    let events: EventDBItem[] = [];
+    if (request.commentContent) {
+        events = await getCommentsWithContent(request.commentContent);
+    } else if (request.eventTag) {
+        events = await getEventsWithTag(request.eventTag);
+    } else {
+        return Responses.badRequest();
+    }
+
     const receivedEvents = events.filter(x => x.receivedAt != null);
     const undeliveredEvents = events.filter(x => x.receivedAt == null);
 
@@ -51,6 +59,16 @@ async function getCommentsWithContent(content: string): Promise<EventDBItem[]> {
     return await EventRepository.getEventsWithFilter(filterExpression, attributeValues);
 }
 
+async function getEventsWithTag(tag: string): Promise<EventDBItem[]> {
+    const filterExpression = 'body.tag = :tag AND topic = :topic';
+    const attributeValues = {
+        ':tag': tag,
+        ':topic': Topic.Demo
+    };
+
+    return await EventRepository.getEventsWithFilter(filterExpression, attributeValues);
+}
+
 function validateRequest(request: any): request is StatGenRequest {
-    return !!request.commentContent;
+    return !!request.commentContent || !!request.eventTag;
 }

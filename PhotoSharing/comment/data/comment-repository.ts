@@ -3,6 +3,7 @@ import {CommentDbItem} from "./comment-db-item";
 import {DynamoDbService} from "../../shared/dynamodb/dynamo-db-service";
 import retry from 'async-retry';
 import {PartitionKeyQuery} from "../../shared/dynamodb/model/query";
+import Log from "../../shared/logging/log";
 
 export class CommentRepository {
 
@@ -10,6 +11,7 @@ export class CommentRepository {
 
     private readonly tableName = 'commentsTable';
     private readonly sortKeySeparator = '#';
+    private readonly tag = 'CommentRepository';
 
     private readonly dynamoDbService: DynamoDbService;
     private readonly maxRetries = 3;
@@ -27,6 +29,7 @@ export class CommentRepository {
     }
 
     public async putComment(comment: Comment) {
+        Log(this.tag, 'Putting comment with ID', comment.id);
         const dbItem = this.toDbItem(comment);
 
         await this.dynamoDbService.put(this.tableName, dbItem);

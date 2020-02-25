@@ -7,4 +7,5 @@ export interface IndexPostItem {
     longitude: number;
     description: string;
     commentCount: number;
+    lastCommentEventTimestamp: number;
 }

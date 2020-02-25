@@ -1,7 +1,7 @@
 import {ApiResponse, Client, ClientOptions} from '@elastic/elasticsearch'
 import {isRunningLocally} from "../EnvironmentUtil";
-import {bool} from "aws-sdk/clients/signer";
 import {IndexPostItem} from "./model/index-post-item";
+import Log from "../logging/log";
 
 export class ElasticsearchService {
 
@@ -10,9 +10,12 @@ export class ElasticsearchService {
     private readonly nodeUrl = 'https://search-photosh-elasti-11452jc84f2fb-gahonamyoqwnq5gnsziehogpee.eu-central-1.es.amazonaws.com';
     private readonly localIndexName = 'local-posts';
     private readonly devIndexName = 'dev-posts';
+    private readonly tag = 'ElasticsearchService';
+    // private readonly devIndexName = 'loadtesting-posts';
 
     private readonly client: Client;
     private readonly indexName: string;
+    private readonly getFeedItemLimit = 10;
 
     private constructor() {
         const opts: ClientOptions = {
@@ -33,8 +36,10 @@ export class ElasticsearchService {
 
     public async indexItem(id: string, item: any): Promise<boolean> {
         if (!item) {
-            throw new Error("Cannot indexItem item to Elasticsearch. Item is null");
+            throw new Error('Cannot indexItem item to Elasticsearch. Item is null');
         }
+
+        Log(this.tag, 'Indexing item in Elasticsearch with ID', id);
 
         const params: any = {
             index: this.indexName,
@@ -52,7 +57,47 @@ export class ElasticsearchService {
         return true;
     }
 
+    public async updateItem(id: string, updateScript: string, scriptParams: any) {
+        if (!id || !updateScript) {
+            throw new Error('Cannot perform update to ES index. Missing required params');
+        }
+
+        Log(this.tag, 'Updating item', id);
+
+        const params = {
+            index: this.indexName,
+            id: id,
+            body: {
+                script: {
+                    source: updateScript,
+                    lang: 'painless',
+                    params: scriptParams
+                }
+            }
+        };
+
+        const response = await this.client.update(params);
+
+        if (!ElasticsearchService.isResponseSuccess(response)) {
+            throw new Error('Error updating item in ES: \n' +
+                'Status code: ' + response.statusCode +
+                '\n. Body: \n'+ response.body);
+        }
+    }
+
+    public async deleteItem(id: string) {
+        const params: any = {
+            index: this.indexName,
+            id: id,
+        };
+        const response = await this.client.delete(params);
+
+        return response;
+    }
+
     public async getFeed(): Promise<IndexPostItem[]> {
+        // TODO: add feed params here
+        Log(this.tag, 'Get feed from Elasticsearch');
         const response = await this.client.search({
             index: this.indexName,
             body: this.getFeedQuery()
@@ -83,10 +128,14 @@ export class ElasticsearchService {
             query: {
                 match_all: {}
             },
+            from: 0,
+            size: this.getFeedItemLimit,
             sort: [
                 { timestamp: "desc" }
             ]
         };
+        Log(this.tag, 'Generating Elasticsearch query:');
+        Log(this.tag, queryBody);
 
         return JSON.stringify(queryBody);
     }

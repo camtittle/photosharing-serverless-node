@@ -1,10 +1,15 @@
 import {LambdaService} from "../../shared/lambda/lambda-service";
 import {DispatchEventRequest} from "./model/dispatch-event-request";
 import {Event} from "../../shared/eventbus/model/event";
+import Log from "../../shared/logging/log";
 
 export class EventDispatcher {
 
-public static async dispatch(event: DispatchEventRequest) {
+    private static readonly tag = EventDispatcher.name;
+
+    public static async dispatch(event: DispatchEventRequest) {
+        Log(this.tag, 'Dispatching event', event.id);
+
         if (!event.id || !event.topic || !event.timestamp || !event.body || !event.destinations) {
             throw new Error("Cannot dispatch event: missing event parameters. Found: " + JSON.stringify(event));
         }
@@ -15,6 +20,7 @@ public static async dispatch(event: DispatchEventRequest) {
         }
 
         // async invocation of lambdas - don't wait for them to complete.
+        Log(this.tag, 'Mapping event to', event.destinations.length ,'Lambda invocation(s)');
         const invocations = event.destinations.map(functionName => {
             return this.dispatchSingle({
                 id: event.id,
@@ -22,7 +28,7 @@ public static async dispatch(event: DispatchEventRequest) {
                 timestamp: event.timestamp,
                 body: event.body,
                 destination: functionName,
-                retryCount: 0 // this value doesn't matter
+                retryCount: 0
             })
         });
 

@@ -7,8 +7,10 @@ import {PostType} from "../business/model/post-type";
 import {CognitoUtils} from "../../shared/cognito/cognito-utils";
 import {Post} from "../business/model/post";
 import {PostResponse} from "./model/post-response";
+import Log from "../../shared/logging/log";
 
 const postService = PostService.getInstance();
+const tag = 'PostService';
 
 export const create = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
     const identity = CognitoUtils.getIdentity(event.requestContext);
@@ -33,6 +35,9 @@ export const create = async (event: APIGatewayEvent): Promise<APIGatewayProxyRes
         latitude: content.latitude,
         longitude: content.longitude
     };
+
+    Log(tag, 'Creating post with details:\n');
+    Log(tag, details);
 
     const post = await postService.createPost(details);
 

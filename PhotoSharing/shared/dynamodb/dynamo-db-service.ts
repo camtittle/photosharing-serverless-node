@@ -13,11 +13,13 @@ import retry from "async-retry";
 import {isRunningLocally} from "../EnvironmentUtil";
 import BatchGetItemInput = DocumentClient.BatchGetItemInput;
 import KeysAndAttributes = DocumentClient.KeysAndAttributes;
+import Log from "../logging/log";
 
 
 export class DynamoDbService {
 
     private static instance: DynamoDbService;
+    private readonly tag = "DynamoDbService";
 
     private dynamoDbClient: DynamoDb.DocumentClient;
     private readonly maxRetries = 3;
@@ -51,6 +53,8 @@ export class DynamoDbService {
             Item: item
         };
 
+        Log(this.tag, 'Putting item to', table);
+
         try {
             // Retry up to maxRetries in case of high demand
             await retry(async () => {
@@ -69,6 +73,8 @@ export class DynamoDbService {
             throw new Error('Cannot perform DELETE. Missing params. Found: ' +
                 JSON.stringify({tableName: table, params: params}));
         }
+
+        Log(this.tag, 'Deleting item from', table, 'with keys', params);
 
         const dynamoParams: DeleteItemInput = {
             TableName: table,
@@ -90,6 +96,7 @@ export class DynamoDbService {
                 JSON.stringify({tableName: table, keys}));
         }
 
+        Log(this.tag, 'BatchGet from table:', table, '. Keys:', keys);
         const params: BatchGetItemInput = {
             RequestItems: {
                 [table]: {
@@ -115,6 +122,8 @@ export class DynamoDbService {
                 JSON.stringify({table, keys, updateExpression, attributeNames, attributeValues}));
         }
 
+        Log(this.tag, 'Updating item in', table, 'with keys', keys);
+
         const params: UpdateItemInput = {
             TableName: table,
             Key: keys,
@@ -125,6 +134,7 @@ export class DynamoDbService {
 
         if (conditionExpression) {
             params.ConditionExpression = conditionExpression;
+            Log(this.tag, 'Condition:', conditionExpression);
         }
 
         try {
@@ -132,7 +142,7 @@ export class DynamoDbService {
         } catch (e) {
             // Silently catch conditional check failed as this is OK
             if (e.code && e.code === 'ConditionalCheckFailedException') {
-                console.log('Conditional Expression was false during UPDATE to item: ', {table, keys});
+                Log(this.tag, 'Conditional Expression was false during UPDATE to item: ', {table, keys});
             } else {
                 throw e;
             }
@@ -165,12 +175,12 @@ export class DynamoDbService {
         return result.Items == undefined ? [] : result.Items as ItemType[];
     }
 
-    // TODO: refactor query methods to be more generic, i.e use an enum to choose operation
     public async queryPartitionKey<ItemType>(table: string, query: PartitionKeyQuery): Promise<ItemType[]> {
         if (!query.partitionKeyName || !query.partitionKeyValue) {
             throw new Error('Cannot perform PARTITION KEY query: Missing query parameters. Found: \n'
                 + JSON.stringify(query));
         }
+        Log(this.tag, 'Querying table:', table, '. Params:',  query);
 
         const keyConditionExpression = `${query.partitionKeyName} = :partitionKeyVal`;
 
@@ -193,6 +203,7 @@ export class DynamoDbService {
                 + JSON.stringify(params));
         }
 
+        Log(this.tag, 'Scan:', params);
         const filterExpression = `${params.fieldName} < :fieldName`;
 
         const dynamoParams: ScanInput = {
@@ -212,15 +223,25 @@ export class DynamoDbService {
         const dynamoParams: ScanInput = {
             TableName: table
         };
+        Log(this.tag, 'Scanning', table, 'with params', params);
 
         if (params && params.filterString && params.attributeValues) {
             dynamoParams.FilterExpression = params.filterString;
             dynamoParams.ExpressionAttributeValues = params.attributeValues;
         }
 
-        const result = await this.dynamoDbClient.scan(dynamoParams).promise();
+        let result = await this.dynamoDbClient.scan(dynamoParams).promise();
 
-        return result.Items == undefined ? [] : result.Items as ItemType[];
+        let items = result.Items == undefined ? [] : result.Items as ItemType[];
+        while (result.LastEvaluatedKey) {
+            dynamoParams.ExclusiveStartKey = result.LastEvaluatedKey;
+            result = await this.dynamoDbClient.scan(dynamoParams).promise();
+            if (result.Items) {
+                items = items.concat(result.Items as ItemType[]);
+            }
+        }
+
+        return items;
     }
 
 }

@@ -3,11 +3,14 @@ import {EventDBItem} from "../domain/event-db-item";
 import retry from 'async-retry';
 import {GenericScan, LessThanScan} from "../../shared/dynamodb/model/scan";
 import {Delete} from "../../shared/dynamodb/model/delete";
+import Log from "../../shared/logging/log";
+import {time} from "aws-sdk/clients/frauddetector";
 
 // Repository wraps the dynamoDb service to abstract DB away from event bus logic
 export class EventRepository {
 
     private static dynamoDbService = DynamoDbService.getInstance();
+    private static tag = 'EventRepository';
 
     private static tableName = 'eventsTable';
     private static deadLetterTableName = 'eventsDeadLetterTable';
@@ -16,6 +19,8 @@ export class EventRepository {
     private static readonly deleteEventsOnceReceived = false;
 
     public static async putEvents(events: EventDBItem[]) {
+        Log(this.tag, 'Storing ', events.length, ' event item(s)');
+
         const promises = events.map(dbItem =>
             this.dynamoDbService.put(this.tableName, dbItem)
         );
@@ -24,10 +29,13 @@ export class EventRepository {
     }
 
     public static async putDeadLetter(event: EventDBItem) {
+        Log(this.tag, 'Putting event', event.id, 'to Dead letter storw');
         await this.dynamoDbService.put(this.deadLetterTableName, event);
     }
 
     public static async updateRetryCount(id: string, destination: string, count: number) {
+        Log(this.tag, 'Update retry count to', count, 'for event', id, 'for destination', destination);
+
         const keys = {
            'id': id,
            'destination': destination
@@ -48,16 +56,18 @@ export class EventRepository {
         });
     }
 
-    public static async markEventReceived(eventId: string, destination: string) {
+    public static async markEventReceived(eventId: string, destination: string, forceDelete: boolean = false) {
         if (!eventId || !destination) {
             throw new Error('Cannot mark event delivered: Missing params. Found: ' +
                 JSON.stringify({eventId, destination}));
         }
 
-        if (this.deleteEventsOnceReceived) {
+        if (this.deleteEventsOnceReceived || forceDelete) {
+            Log(this.tag, 'Deleting event', eventId, ', received by', destination);
             await this.deleteEvent(eventId, destination);
         } else {
             const timestamp = new Date().getTime();
+            Log(this.tag, 'Marking event', eventId, 'as received by', destination, 'at timestamp', timestamp);
             await this.setReceivedFlag(eventId, destination, timestamp);
         }
     }
@@ -110,13 +120,18 @@ export class EventRepository {
     }
 
     public static async getUndeliveredEvents(beforeTimestamp: number): Promise<EventDBItem[]> {
-        const scanParams: LessThanScan<EventDBItem> = {
-            fieldName: 'time_stamp',
-            lessThanValue: beforeTimestamp
+        Log(this.tag, 'Getting undelivered events with timestamp <', beforeTimestamp);
+
+        const scanParams: GenericScan<EventDBItem> = {
+            filterString: 'time_stamp < :beforeTimestamp AND (attribute_not_exists(receivedAt) OR receivedAt = :receivedAt OR attribute_type(receivedAt, :receivedAt))',
+            attributeValues: {
+                ':beforeTimestamp': beforeTimestamp,
+                ':receivedAt': 'NULL'
+            }
         };
 
         return await retry(async () => {
-            return await this.dynamoDbService.scanLessThan(this.tableName, scanParams);
+            return await this.dynamoDbService.scan(this.tableName, scanParams);
         }, {
             retries: this.maxRetries
         });

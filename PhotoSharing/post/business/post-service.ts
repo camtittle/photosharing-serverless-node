@@ -8,12 +8,16 @@ import {PostType} from "./model/post-type";
 import {PartitionKeyQuery} from "../../shared/dynamodb/model/query";
 import {EventBusService} from "../../shared/eventbus/eventbus-service";
 import {Topic} from "../../shared/eventbus/topics/topic";
+import Log from "../../shared/logging/log";
+
+const tag = 'PostService';
 
 export class PostService {
 
     private static instance: PostService;
 
     private readonly tableName = 'postsTable';
+    private readonly tag = 'PostService';
 
     private constructor() {}
 
@@ -38,6 +42,8 @@ export class PostService {
             lastCommentEventTimestamp: 0
         };
 
+        Log(this.tag, 'Creating post with ID', newPost.id);
+
         if (details.type === PostType.Image && details.base64Image) {
             newPost.imageUrl = await this.uploadImage(details.userId, details.base64Image);
         }
@@ -52,12 +58,17 @@ export class PostService {
 
     private async uploadImage(userId: string, base64Image: string): Promise<string> {
         const s3Service = S3Service.getInstance();
-        return await s3Service.uploadImage(userId, base64Image);
+
+        Log(this.tag, 'Uploading image to S3...');
+        const url = await s3Service.uploadImage(userId, base64Image);
+        Log(this.tag, 'Image upload complete');
+
+        return url;
     }
 
     public async updateCommentCount(postId: string, postTimestamp: number,
                                     commentEventTimestamp: number, count: number) {
-        console.log('updateCommentCount');
+        Log(tag, 'Conditionally updating comment count for post', postId, 'to', count);
         if (!postId || commentEventTimestamp === null || count === null) {
             throw new Error('postId and commentCount required');
         }
@@ -109,6 +120,9 @@ export class PostService {
             commentCount: 0
         };
 
+
+        Log(this.tag, 'Publishing event to TOPIC post:');
+        Log(this.tag, event);
         await EventBusService.publish(Topic.Post, event);
     }
 }

@@ -5,6 +5,10 @@ import {EventBusService} from "../shared/eventbus/eventbus-service";
 import {Destinations} from "../shared/eventbus/destinations";
 import {IndexPostItem} from "../shared/elasticsearch/model/index-post-item";
 import {ElasticsearchService} from "../shared/elasticsearch/elasticsearch-service";
+import Log from "../shared/logging/log";
+import {CommentTopicEvent} from "../shared/eventbus/topics/comment-topic";
+
+const tag = 'FeedServiceEventHandler';
 
 export const handler = async (event: Event) => {
 
@@ -14,21 +18,27 @@ export const handler = async (event: Event) => {
             await handlePostEvent(event);
             break;
         }
+        case Topic.Comment: {
+            await handleCommentEvent(event);
+            break;
+        }
     }
 };
 
 async function handlePostEvent(event: Event) {
     const body = event.body as PostTopicEvent;
 
-    console.log(`Feed Service subscriber received post event with ID '${body.id}'`);
+    Log(tag, `Received post event with ID '${body.id}'`);
 
     const indexPostItem = mapToIndexPostItem(body);
     const elasticsearchService = ElasticsearchService.getInstance();
 
      try {
          await elasticsearchService.indexItem(body.id, indexPostItem);
+         Log(tag, 'Successfully added post ID ' + body.id + ' to Elasticsearch index');
+
+         Log(tag, 'Confirming receipt of event...');
          await EventBusService.confirm(event.id, Destinations.feedService.handlerFunctionName);
-         console.log('Successfully added post ID ' + body.id + ' to Elasticsearch index');
      } catch (e) {
          console.error('Error whilst handling Post Event with ID: ' + event.id);
          console.error(e);
@@ -44,6 +54,31 @@ function mapToIndexPostItem(postEvent: PostTopicEvent): IndexPostItem {
         longitude: postEvent.longitude,
         commentCount: postEvent.commentCount,
         imageUrl: postEvent.imageUrl,
-        timestamp: postEvent.timestamp
+        timestamp: postEvent.timestamp,
+        lastCommentEventTimestamp: 0
     }
+}
+
+async function handleCommentEvent(event: Event) {
+    const body = event.body as CommentTopicEvent;
+
+    const updateScript = `
+        if (!ctx._source.containsKey('lastCommentEventTimestamp')
+            || ctx._source.lastCommentEventTimestamp < params.eventTimestamp) {
+                ctx._source.lastCommentEventTimestamp = params.eventTimestamp;
+                ctx._source.commentCount = params.commentCount; 
+        }
+    `;
+    const params = {
+        eventTimestamp: event.timestamp,
+        commentCount: body.commentCount
+    };
+
+    const elasticsearchService = ElasticsearchService.getInstance();
+    await elasticsearchService.updateItem(body.postId, updateScript, params);
+
+    Log(tag, 'Successfully updated commentCount for post ID ' + body.postId + ' in Elasticsearch index');
+
+    Log(tag, 'Confirming receipt of event...');
+    await EventBusService.confirm(event.id, Destinations.feedService.handlerFunctionName);
 }

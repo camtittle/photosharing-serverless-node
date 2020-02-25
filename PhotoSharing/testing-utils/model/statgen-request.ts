@@ -1,3 +1,4 @@
 export interface StatGenRequest {
-    commentContent: string;
+    commentContent?: string;
+    eventTag?: string;
 }

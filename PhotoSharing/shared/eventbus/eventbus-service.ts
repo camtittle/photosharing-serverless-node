@@ -3,6 +3,7 @@ import {v4 as uuid} from 'uuid';
 import {LambdaService} from "../lambda/lambda-service";
 import {ConfirmEventRequest} from "./model/confirm-event-request";
 import {PublishEventRequest} from "./model/publish-event-request";
+import Log from "../logging/log";
 
 export class EventBusService {
 
@@ -24,7 +25,6 @@ export class EventBusService {
 
         try {
             const result = await LambdaService.invoke(this.publishLambdaName, event);
-            console.log(result);
         } catch (err) {
             console.error(err);
             throw new Error('Error whilst invoking PublishEvent lambda. Payload: ' + JSON.stringify(event));
@@ -45,7 +45,6 @@ export class EventBusService {
 
         try {
             const result = await LambdaService.invoke(this.confirmLambdaName, request);
-            console.log(result);
         } catch (err) {
             console.error(err);
             throw new Error('Error whilst invoking ConfirmEvent lambda. Payload: ' + JSON.stringify(request));
