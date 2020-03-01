@@ -12,6 +12,7 @@ const subscriptions: {[topic: string]: Subscription[]} = {
     ],
     [Topic.Comment]: [
         {functionName: Destinations.postService.handlerFunctionName},
+        {functionName: Destinations.feedService.handlerFunctionName},
         {functionName: Destinations.demoSubscriber.handlerFunctionName}
     ],
     [Topic.Demo]: [
@@ -21,6 +22,6 @@ const subscriptions: {[topic: string]: Subscription[]} = {
 
 export function getSubscriptionsForTopic(topic: Topic): Subscription[] {
     const subs = subscriptions[topic];
-    Log('GetSubscriptionsForTopic', 'Found ' + subs.length + ' subscription(s) for TOPIC ' + topic + ':', subs);
+    Log('GetSubscriptionsForTopic', 'Found ' + subs.length + ' subscription(s) for ' + topic.toUpperCase() + ' topic:', subs);
     return subs ? subs : [];
 }

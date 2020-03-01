@@ -93,11 +93,18 @@ functions:
             authorizerId:
               Ref: ApiGatewayAuthorizer
 
+  getProfile:
+    handler: profile/handler/profile-handler.get
+    events:
+      - http:
+          path: profile
+          method: get
+
   getProfilesBatch:
     handler: profile/handler/profile-handler.batchGet
     events:
       - http:
-          path: profile
+          path: profile/batch
           method: get
 
   getFeed:
