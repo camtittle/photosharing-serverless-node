@@ -3,8 +3,10 @@ export interface IndexPostItem {
     userId: string;
     timestamp: number;
     imageUrl?: string;
-    latitude: number;
-    longitude: number;
+    location: {
+        lat: number;
+        lon: number;
+    }
     description: string;
     commentCount: number;
     lastCommentEventTimestamp: number;

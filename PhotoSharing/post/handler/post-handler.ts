@@ -80,7 +80,7 @@ function getPostType(createPostType: CreatePostType): PostType {
 
 function validateModel(model: CreatePostRequest): boolean {
     return ((model.type === CreatePostType.Image && !!model.base64Image) || model.type === CreatePostType.Text)
-        && !!model.latitude && !!model.longitude;
+        && model.latitude!= undefined && model.longitude != undefined;
 }
 
 

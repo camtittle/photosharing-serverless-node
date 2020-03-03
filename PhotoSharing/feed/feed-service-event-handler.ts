@@ -50,8 +50,10 @@ function mapToIndexPostItem(postEvent: PostTopicEvent): IndexPostItem {
         postId: postEvent.id,
         userId: postEvent.userId,
         description: postEvent.description,
-        latitude: postEvent.latitude,
-        longitude: postEvent.longitude,
+        location: {
+            lat: postEvent.latitude,
+            lon: postEvent.longitude
+        },
         commentCount: postEvent.commentCount,
         imageUrl: postEvent.imageUrl,
         timestamp: postEvent.timestamp,

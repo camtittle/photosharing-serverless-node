@@ -8,10 +8,13 @@ export class ElasticsearchService {
     private static instance: ElasticsearchService;
 
     private readonly nodeUrl = 'https://search-photosh-elasti-11452jc84f2fb-gahonamyoqwnq5gnsziehogpee.eu-central-1.es.amazonaws.com';
-    private readonly localIndexName = 'local-posts';
-    private readonly devIndexName = 'dev-posts';
+
+    // TODO swap these
+    //private readonly localIndexName = 'local-posts';
+    private readonly localIndexName = 'dev-posts-2';
+    private readonly devIndexName = 'dev-posts-2';
+
     private readonly tag = 'ElasticsearchService';
-    // private readonly devIndexName = 'loadtesting-posts';
 
     private readonly client: Client;
     private readonly indexName: string;
@@ -95,12 +98,12 @@ export class ElasticsearchService {
         return response;
     }
 
-    public async getFeed(): Promise<IndexPostItem[]> {
-        // TODO: add feed params here
-        Log(this.tag, 'Get feed from Elasticsearch');
+    public async getFeed(lat: number, lon: number): Promise<IndexPostItem[]> {
+        Log(this.tag, 'Get feed from Elasticsearch for location:', lat, ',', lon);
+
         const response = await this.client.search({
             index: this.indexName,
-            body: this.getFeedQuery()
+            body: this.getFeedQuery(lat, lon)
         });
 
         if (!ElasticsearchService.isResponseSuccess(response)) {
@@ -123,10 +126,23 @@ export class ElasticsearchService {
         return [];
     }
 
-    private getFeedQuery(): string {
+    private getFeedQuery(lat: number, lon: number): string {
         const queryBody = {
             query: {
-                match_all: {}
+                bool: {
+                    must: {
+                        match_all: {}
+                    },
+                    filter: {
+                        geo_distance: {
+                            distance: '10km',
+                            location: {
+                                lat: lat,
+                                lon: lon
+                            }
+                        }
+                    }
+                }
             },
             from: 0,
             size: this.getFeedItemLimit,
@@ -135,7 +151,7 @@ export class ElasticsearchService {
             ]
         };
         Log(this.tag, 'Generating Elasticsearch query:');
-        Log(this.tag, queryBody);
+        Log(this.tag, JSON.stringify(queryBody));
 
         return JSON.stringify(queryBody);
     }
