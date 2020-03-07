@@ -27,7 +27,7 @@ const handleCommentEvent = async (event: Event) => {
     if (body.action === CommentAction.Add) {
         // Update Post Service's commentCount value for this post
         try {
-            await postService.updateCommentCount(body.postId, body.postTimestamp, event.timestamp, body.commentCount);
+            await postService.updateCommentCount(body.postId, event.timestamp, body.commentCount);
         } catch (e) {
             console.error('Unable to update comment count for post ID ' + body.postId);
             console.error(e);

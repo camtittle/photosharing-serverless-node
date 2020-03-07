@@ -8,6 +8,8 @@ import {CognitoUtils} from "../../shared/cognito/cognito-utils";
 import {Post} from "../business/model/post";
 import {PostResponse} from "./model/post-response";
 import Log from "../../shared/logging/log";
+import {RequestVoteType, VoteRequest} from "./model/vote-request";
+import {VoteType} from "../business/model/vote-type";
 
 const postService = PostService.getInstance();
 const tag = 'PostService';
@@ -19,7 +21,7 @@ export const create = async (event: APIGatewayEvent): Promise<APIGatewayProxyRes
     }
 
     if (event.body == null) {
-        return Responses.badRequest()
+        return Responses.badRequest();
     }
 
     const content = <CreatePostRequest>JSON.parse(event.body);
@@ -59,12 +61,30 @@ export const getSingle = async (event: APIGatewayEvent): Promise<APIGatewayProxy
     return Responses.Ok(mapPostToResponse(post));
 };
 
-export const getDemo = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
-    const posts = await postService.getPosts();
-    const response = {
-        posts: posts
-    };
-    return Responses.Ok(response);
+export const vote = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+    const identity = CognitoUtils.getIdentity(event.requestContext);
+    if (!identity) {
+        return Responses.Unauthorized();
+    }
+
+    if (event.body == null) {
+        return Responses.badRequest();
+    }
+
+    const request = JSON.parse(event.body);
+    if (!validateVoteModel(request)) {
+        return Responses.badRequest({ message: 'Missing required field(s)' });
+    }
+
+    try {
+        Log(tag, 'Voting on post with details:\n');
+        Log(tag, request);
+        const voteType = mapVoteType(request.type);
+        await postService.setVote(identity.userId, request.postId, voteType);
+        return Responses.Ok();
+    } catch (ex) {
+        return Responses.InternalServerError(ex);
+    }
 };
 
 function getPostType(createPostType: CreatePostType): PostType {
@@ -83,6 +103,9 @@ function validateModel(model: CreatePostRequest): boolean {
         && model.latitude!= undefined && model.longitude != undefined;
 }
 
+function validateVoteModel(model: any): model is VoteRequest {
+    return !!model.postId && !!model.type;
+}
 
 function mapPostToResponse(post: Post): PostResponse {
     return {
@@ -95,5 +118,13 @@ function mapPostToResponse(post: Post): PostResponse {
         imageUrl: post.imageUrl,
         postType: post.postType,
         userId: post.userId
+    }
+}
+
+function mapVoteType(requestVoteType: RequestVoteType): VoteType {
+    switch(requestVoteType) {
+        case RequestVoteType.UP: return VoteType.UP;
+        case RequestVoteType.DOWN: return VoteType.DOWN;
+        default: throw new Error("Unrecognised vote type");
     }
 }

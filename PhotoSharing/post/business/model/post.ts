@@ -11,6 +11,8 @@ export interface Post {
     description: string;
     commentCount: number;
     lastCommentEventTimestamp: number;
+    upvotes: string[];
+    downvotes: string[];
 }
 
 

@@ -9,6 +9,7 @@ import {PartitionKeyQuery} from "../../shared/dynamodb/model/query";
 import {EventBusService} from "../../shared/eventbus/eventbus-service";
 import {Topic} from "../../shared/eventbus/topics/topic";
 import Log from "../../shared/logging/log";
+import {VoteType} from "./model/vote-type";
 
 const tag = 'PostService';
 
@@ -39,7 +40,9 @@ export class PostService {
             longitude: details.longitude,
             description: details.description,
             commentCount: 0,
-            lastCommentEventTimestamp: 0
+            lastCommentEventTimestamp: 0,
+            upvotes: [],
+            downvotes: []
         };
 
         Log(this.tag, 'Creating post with ID', newPost.id);
@@ -66,8 +69,7 @@ export class PostService {
         return url;
     }
 
-    public async updateCommentCount(postId: string, postTimestamp: number,
-                                    commentEventTimestamp: number, count: number) {
+    public async updateCommentCount(postId: string, commentEventTimestamp: number, count: number) {
         Log(tag, 'Conditionally updating comment count for post', postId, 'to', count);
         if (!postId || commentEventTimestamp === null || count === null) {
             throw new Error('postId and commentCount required');
@@ -75,8 +77,7 @@ export class PostService {
 
         const dynamoDbService = DynamoDbService.getInstance();
         const keys = {
-            id: postId,
-            timestamp: postTimestamp
+            id: postId
         };
         const expression = 'SET #count = :count, #lastCommentEventTimestamp = :eventTimestamp';
         // condition ensures that events that arrive out of order are ignored - only latest events processed
@@ -105,6 +106,45 @@ export class PostService {
         }
 
         return posts[0];
+    }
+
+    public async setVote(userId: string, postId: string, voteType: VoteType) {
+        Log(tag, 'Setting', voteType, 'vote on post', postId, 'for user', userId);
+
+        if (!postId || !userId || !voteType) {
+            throw new Error('UserId, PostId and VoteType are required parameters');
+        }
+
+        const dynamoDbService = DynamoDbService.getInstance();
+
+        // Get current votes
+        const post = await this.getPost(postId);
+        if (post == null) {
+            throw new Error("Post not found");
+        }
+
+        // Update votes lists
+        Log(this.tag, 'Updating upvotes and downvotes arrays for post', postId);
+        const upvoteIndex = post.upvotes.indexOf(userId);
+        const downvoteIndex = post.downvotes.indexOf(userId);
+
+        if (voteType == VoteType.UP) {
+            if (upvoteIndex < 0)    post.upvotes.push(userId);
+            if (downvoteIndex > -1) post.downvotes.splice(downvoteIndex, 1);
+        }
+
+        if (voteType == VoteType.DOWN) {
+            if (downvoteIndex < 0) post.downvotes.push(userId);
+            if (upvoteIndex > -1) post.upvotes.splice(upvoteIndex, 1);
+        }
+
+        const keys = {
+            id: postId
+        };
+        const expression = 'SET #upvotes = :upvotes, #downvtoes = :downvotes';
+        const names = { '#upvotes': 'upvotes', '#downvotes': 'downvotes' };
+        const values = { ':upvotes': post.upvotes, ':downvotes': post.downvotes };
+        await dynamoDbService.update(this.tableName, keys, expression, names, values);
     }
 
     private async publishEvent(post: Post, action: PostAction) {

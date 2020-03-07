@@ -18,6 +18,10 @@ const DISPATCHER_FUNCTION_NAME = 'dispatchEvent';
 const MAX_DISPATCH_RETRIES = 3;
 const tag = 'EventBusHandler';
 
+
+/*
+    Publish Event Lambda Function
+ */
 export const publish = async (eventToPublish: PublishEventRequest, context: Context) => {
     if (!eventToPublish.id || !eventToPublish.timestamp || !eventToPublish.topic || !eventToPublish.body) {
         throw new Error("Cannot publish event: missing event parameters. Found: " + JSON.stringify(eventToPublish));
@@ -59,11 +63,35 @@ export const publish = async (eventToPublish: PublishEventRequest, context: Cont
     return 1;
 };
 
+
+/*
+    Dispatch Events Lambda Function
+ */
 export const dispatch = async (eventToDispatch: DispatchEventRequest, context: Context) => {
     await EventDispatcher.dispatch(eventToDispatch);
-
 };
 
+
+/*
+    Confirm Event Delivery Lambda
+ */
+export const confirm = async (eventToConfirm: ConfirmEventRequest, context: Context) => {
+    Log(tag, 'Attempting to confirm receipt of EVENT', eventToConfirm.eventId, 'by', eventToConfirm.destination);
+
+    if (!eventToConfirm.eventId || !eventToConfirm.destination) {
+        throw new Error("Cannot confirm event: missing event parameters. Found: " + JSON.stringify(eventToConfirm));
+    }
+
+    await EventRepository.markEventReceived(eventToConfirm.eventId, eventToConfirm.destination);
+
+    return 1;
+};
+
+
+
+/*
+   Scheduled Event Re-dispatcher Lambda Function
+ */
 export const scheduledRedispatch = async (context: Context) => {
     Log(tag ,'Scheduled re-dispatcher function started');
 
@@ -114,18 +142,6 @@ export const scheduledRedispatch = async (context: Context) => {
     });
 
     await Promise.all(tasks);
-
-    return 1;
-};
-
-export const confirm = async (eventToConfirm: ConfirmEventRequest, context: Context) => {
-    Log(tag, 'Attempting to confirm receipt of EVENT', eventToConfirm.eventId, 'by', eventToConfirm.destination);
-
-    if (!eventToConfirm.eventId || !eventToConfirm.destination) {
-        throw new Error("Cannot confirm event: missing event parameters. Found: " + JSON.stringify(eventToConfirm));
-    }
-
-    await EventRepository.markEventReceived(eventToConfirm.eventId, eventToConfirm.destination);
 
     return 1;
 };

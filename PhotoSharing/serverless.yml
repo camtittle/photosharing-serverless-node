@@ -56,13 +56,16 @@ functions:
               path:
                 id: true
 
-
-  getDemoPost:
-    handler: post/handler/post-handler.getDemo
+  vote:
+    handler: post/handler/post-handler.vote
     events:
       - http:
-          path: posts
-          method: get
+          path: posts/vote
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
 
   addComment:
     handler: comment/handler/comment-handler.add
@@ -159,18 +162,6 @@ functions:
     handler: demo-subscriber/demo-subscriber-handler.handler
     name: demoSubscriber
 
-  demoSubscriber2:
-    handler: demo-subscriber/demo-subscriber-handler.handler2
-    name: demoSubscriber2
-
-  demoSubscriber3:
-    handler: demo-subscriber/demo-subscriber-handler.handler3
-    name: demoSubscriber3
-
-  demoSubscriber4:
-    handler: demo-subscriber/demo-subscriber-handler.handler4
-    name: demoSubscriber4
-
   postServiceEventHandler:
     handler: post/handler/post-service-event-handler.handler
     name: postServiceEventHandler
@@ -222,13 +213,9 @@ resources:
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
-          - AttributeName: timestamp
-            AttributeType: N
         KeySchema:
           - AttributeName: id
             KeyType: HASH
-          - AttributeName: timestamp
-            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 2
           WriteCapacityUnits: 2

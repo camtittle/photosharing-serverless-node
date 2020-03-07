@@ -23,7 +23,6 @@ export const add = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult
     const details: AddCommentDetails = {
         userId: identity.userId,
         postId: content.postId,
-        postTimestamp: content.postTimestamp,
         content: content.content
     };
 
@@ -48,9 +47,8 @@ export const get = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult
         return Responses.InternalServerError(e);
     }
 
-
 };
 
-function validateAddCommentModel(model: any): model is AddCommentRequest {
-    return !!model.content && !!model.postId && !!model.postTimestamp && typeof model.postTimestamp === 'number';
+function validateAddCommentModel(model: AddCommentRequest): model is AddCommentRequest {
+    return !!model.content && !!model.postId;
 }

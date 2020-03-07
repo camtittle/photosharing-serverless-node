@@ -36,7 +36,6 @@ export class CommentService {
             id: uuid(),
             userId: details.userId,
             postId: details.postId,
-            postTimestamp: details.postTimestamp,
             timestamp: new Date().getTime(),
             content: details.content
         };
@@ -67,7 +66,6 @@ export class CommentService {
             commentId: comment.id,
             content: comment.content,
             postId: comment.postId,
-            postTimestamp: comment.postTimestamp,
             timestamp: comment.timestamp,
             commentCount: commentCount
         };

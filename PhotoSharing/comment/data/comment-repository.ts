@@ -58,7 +58,6 @@ export class CommentRepository {
         const sortKey = comment.timestamp + this.sortKeySeparator + comment.id;
         return {
             postId: comment.postId,
-            postTimestamp: comment.postTimestamp,
             timestamp_id: sortKey,
             userId: comment.userId,
             content: comment.content
@@ -76,7 +75,6 @@ export class CommentRepository {
             timestamp: parseInt(sortKeyParts[0]),
             userId: dbItem.userId,
             postId: dbItem.postId,
-            postTimestamp: dbItem.postTimestamp,
             content: dbItem.content
         };
     }
