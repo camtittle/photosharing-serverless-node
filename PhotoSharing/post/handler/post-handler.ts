@@ -47,6 +47,11 @@ export const create = async (event: APIGatewayEvent): Promise<APIGatewayProxyRes
 };
 
 export const getSingle = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+    const identity = CognitoUtils.getIdentity(event.requestContext);
+    if (!identity) {
+        return Responses.Unauthorized();
+    }
+
     if (!event.pathParameters || !event.pathParameters.id) {
         return Responses.badRequest('ID and timestamp required')
     }
@@ -58,7 +63,7 @@ export const getSingle = async (event: APIGatewayEvent): Promise<APIGatewayProxy
         return Responses.notFound();
     }
 
-    return Responses.Ok(mapPostToResponse(post));
+    return Responses.Ok(mapPostToResponse(post, identity.userId));
 };
 
 export const vote = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
@@ -107,7 +112,7 @@ function validateVoteModel(model: any): model is VoteRequest {
     return !!model.postId && !!model.type;
 }
 
-function mapPostToResponse(post: Post): PostResponse {
+function mapPostToResponse(post: Post, userId: string): PostResponse {
     return {
         id: post.id,
         timestamp: post.timestamp,
@@ -117,7 +122,11 @@ function mapPostToResponse(post: Post): PostResponse {
         commentCount: post.commentCount,
         imageUrl: post.imageUrl,
         postType: post.postType,
-        userId: post.userId
+        userId: post.userId,
+        upvotes: post.upvotes.length,
+        downvotes: post.downvotes.length,
+        hasUpvoted: post.upvotes.includes(userId),
+        hasDownvoted: post.downvotes.includes(userId)
     }
 }
 

@@ -30,7 +30,7 @@ export const publish = async (eventToPublish: PublishEventRequest, context: Cont
     Log(tag, 'Publishing event to TOPIC ' + eventToPublish.topic + ' with event body:\n', eventToPublish.body);
 
     const subs = getSubscriptionsForTopic(eventToPublish.topic);
-    if (subs.length < 1) {
+    if (!subs || subs.length < 1) {
         console.log(`Event ${eventToPublish.id} for TOPIC ${eventToPublish.topic} has no subscriptions. Cancelling publish`);
         return;
     }

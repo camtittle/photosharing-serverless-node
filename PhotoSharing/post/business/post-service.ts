@@ -10,6 +10,7 @@ import {EventBusService} from "../../shared/eventbus/eventbus-service";
 import {Topic} from "../../shared/eventbus/topics/topic";
 import Log from "../../shared/logging/log";
 import {VoteType} from "./model/vote-type";
+import {EventVoteType, VoteTopicEvent} from "../../shared/eventbus/topics/vote-topic";
 
 const tag = 'PostService';
 
@@ -141,10 +142,12 @@ export class PostService {
         const keys = {
             id: postId
         };
-        const expression = 'SET #upvotes = :upvotes, #downvtoes = :downvotes';
+        const expression = 'SET #upvotes = :upvotes, #downvotes = :downvotes';
         const names = { '#upvotes': 'upvotes', '#downvotes': 'downvotes' };
         const values = { ':upvotes': post.upvotes, ':downvotes': post.downvotes };
         await dynamoDbService.update(this.tableName, keys, expression, names, values);
+
+        await this.publishVoteEvent(postId, userId, voteType);
     }
 
     private async publishEvent(post: Post, action: PostAction) {
@@ -164,5 +167,17 @@ export class PostService {
         Log(this.tag, 'Publishing event to TOPIC post:');
         Log(this.tag, event);
         await EventBusService.publish(Topic.Post, event);
+    }
+
+    private async publishVoteEvent(postId: string, userId: string, type: VoteType) {
+        const event: VoteTopicEvent = {
+            postId: postId,
+            userId: userId,
+            voteType: type == VoteType.UP ? EventVoteType.UP : EventVoteType.DOWN
+        };
+
+        Log(this.tag, 'Publishing event to VOTE topic:');
+        Log(this.tag, event);
+        await EventBusService.publish(Topic.Vote, event);
     }
 }

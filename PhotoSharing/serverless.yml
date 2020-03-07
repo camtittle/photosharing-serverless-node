@@ -51,6 +51,10 @@ functions:
       - http:
           path: posts/{id}
           method: get
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
           request:
             parameters:
               path:

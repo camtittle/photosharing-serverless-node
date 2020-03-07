@@ -7,6 +7,7 @@ import {IndexPostItem} from "../shared/elasticsearch/model/index-post-item";
 import {ElasticsearchService} from "../shared/elasticsearch/elasticsearch-service";
 import Log from "../shared/logging/log";
 import {CommentTopicEvent} from "../shared/eventbus/topics/comment-topic";
+import {VoteTopicEvent} from "../shared/eventbus/topics/vote-topic";
 
 const tag = 'FeedServiceEventHandler';
 
@@ -20,6 +21,10 @@ export const handler = async (event: Event) => {
         }
         case Topic.Comment: {
             await handleCommentEvent(event);
+            break;
+        }
+        case Topic.Vote: {
+            await handleVoteEvent(event);
             break;
         }
     }
@@ -80,6 +85,15 @@ async function handleCommentEvent(event: Event) {
     await elasticsearchService.updateItem(body.postId, updateScript, params);
 
     Log(tag, 'Successfully updated commentCount for post ID ' + body.postId + ' in Elasticsearch index');
+
+    Log(tag, 'Confirming receipt of event...');
+    await EventBusService.confirm(event.id, Destinations.feedService.handlerFunctionName);
+}
+
+async function handleVoteEvent(event: Event) {
+    const body = event.body as VoteTopicEvent;
+
+    Log(tag, 'FeedService received', body.voteType, 'VOTE event');
 
     Log(tag, 'Confirming receipt of event...');
     await EventBusService.confirm(event.id, Destinations.feedService.handlerFunctionName);

@@ -10,4 +10,8 @@ export interface PostResponse {
     longitude: number;
     description: string;
     commentCount: number;
+    upvotes: number;
+    downvotes: number;
+    hasUpvoted: boolean;
+    hasDownvoted: boolean;
 }

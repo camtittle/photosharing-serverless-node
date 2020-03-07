@@ -15,6 +15,9 @@ const subscriptions: {[topic: string]: Subscription[]} = {
         {functionName: Destinations.feedService.handlerFunctionName},
         {functionName: Destinations.demoSubscriber.handlerFunctionName}
     ],
+    [Topic.Vote]: [
+        {functionName: Destinations.feedService.handlerFunctionName}
+    ],
     [Topic.Demo]: [
         {functionName: Destinations.demoSubscriber.handlerFunctionName}
     ]
@@ -22,6 +25,10 @@ const subscriptions: {[topic: string]: Subscription[]} = {
 
 export function getSubscriptionsForTopic(topic: Topic): Subscription[] {
     const subs = subscriptions[topic];
-    Log('GetSubscriptionsForTopic', 'Found ' + subs.length + ' subscription(s) for ' + topic.toUpperCase() + ' topic:', subs);
-    return subs ? subs : [];
+    if (subs != undefined) {
+        Log('GetSubscriptionsForTopic', 'Found ' + subs.length + ' subscription(s) for ' + topic.toUpperCase() + ' topic:', subs);
+        return subs;
+    }
+
+    return [];
 }
