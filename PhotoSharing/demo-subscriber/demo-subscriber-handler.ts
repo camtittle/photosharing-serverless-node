@@ -40,7 +40,7 @@ export const handler = async (event: Event) => {
 
             // Comment this line to simulate event delivery failure
             Log(tag, 'Confirming receipt of event...');
-            await EventBusService.confirm(event.id, Destinations.demoSubscriber.handlerFunctionName);
+            //await EventBusService.confirm(event.id, Destinations.demoSubscriber.handlerFunctionName);
             break;
         }
     }

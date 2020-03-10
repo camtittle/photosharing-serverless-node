@@ -6,4 +6,12 @@ export interface FeedResponseItem {
     distanceKm: number;
     description: string;
     commentCount: number;
+    votes: {
+        [userId: string]: UserVote
+    }
+}
+
+type UserVote = {
+    voteType: 'up' | 'down',
+    lastEventTimestamp: number;
 }

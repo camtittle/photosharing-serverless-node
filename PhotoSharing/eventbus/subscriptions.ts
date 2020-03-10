@@ -12,8 +12,7 @@ const subscriptions: {[topic: string]: Subscription[]} = {
     ],
     [Topic.Comment]: [
         {functionName: Destinations.postService.handlerFunctionName},
-        {functionName: Destinations.feedService.handlerFunctionName},
-        {functionName: Destinations.demoSubscriber.handlerFunctionName}
+        {functionName: Destinations.feedService.handlerFunctionName}
     ],
     [Topic.Vote]: [
         {functionName: Destinations.feedService.handlerFunctionName}

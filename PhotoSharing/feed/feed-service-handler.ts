@@ -54,7 +54,8 @@ function mapIndexItemsToFeedItems(lat: number, lon: number, indexItems: IndexPos
         commentCount: x.commentCount,
         distanceKm: calcDistance(lat, lon, x.location.lat, x.location.lon),
         timestamp: x.timestamp,
-        description: x.description
+        description: x.description,
+        votes: x.votes
     }));
 }
 

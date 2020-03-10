@@ -10,4 +10,12 @@ export interface IndexPostItem {
     description: string;
     commentCount: number;
     lastCommentEventTimestamp: number;
+    votes: {
+        [userId: string]: UserVote
+    }
+}
+
+export type UserVote = {
+    voteType: 'up' | 'down',
+    lastEventTimestamp: number;
 }

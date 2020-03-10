@@ -1,7 +1,7 @@
 export interface VoteTopicEvent {
     postId: string;
     userId: string;
-    voteType: string;
+    voteType: EventVoteType;
 }
 
 export enum EventVoteType {

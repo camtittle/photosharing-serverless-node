@@ -8,6 +8,7 @@ import {ElasticsearchService} from "../shared/elasticsearch/elasticsearch-servic
 import Log from "../shared/logging/log";
 import {CommentTopicEvent} from "../shared/eventbus/topics/comment-topic";
 import {VoteTopicEvent} from "../shared/eventbus/topics/vote-topic";
+import {VoteType} from "../post/business/model/vote-type";
 
 const tag = 'FeedServiceEventHandler';
 
@@ -62,7 +63,8 @@ function mapToIndexPostItem(postEvent: PostTopicEvent): IndexPostItem {
         commentCount: postEvent.commentCount,
         imageUrl: postEvent.imageUrl,
         timestamp: postEvent.timestamp,
-        lastCommentEventTimestamp: 0
+        lastCommentEventTimestamp: 0,
+        votes: {}
     }
 }
 
@@ -95,6 +97,26 @@ async function handleVoteEvent(event: Event) {
 
     Log(tag, 'FeedService received', body.voteType, 'VOTE event');
 
-    Log(tag, 'Confirming receipt of event...');
+    const userId = body.userId;
+    const updateScript = `
+        if (!ctx._source.votes.containsKey('${userId}')
+            || ctx._source.votes.${userId}.lastEventTimestamp < params.eventTimestamp) {
+                ctx._source.votes.${userId}.lastEventTimestamp = params.eventTimestamp;
+                ctx._source.votes.${userId}.voteType = params.voteType; 
+        }
+    `;
+
+    Log(tag, updateScript);
+    const params = {
+        eventTimestamp: event.timestamp,
+        voteType: body.voteType
+    };
+
+    const elasticsearchService = ElasticsearchService.getInstance();
+    await elasticsearchService.updateItem(body.postId, updateScript, params);
+
+    Log(tag, 'Successfully updated votes for post ID ' + body.postId + ' in Elasticsearch index');
+
+    Log(tag, 'Confirming receipt of vote event...');
     await EventBusService.confirm(event.id, Destinations.feedService.handlerFunctionName);
 }

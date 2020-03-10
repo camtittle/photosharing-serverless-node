@@ -14,5 +14,3 @@ export interface Post {
     upvotes: string[];
     downvotes: string[];
 }
-
-
