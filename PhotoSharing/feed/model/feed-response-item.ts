@@ -6,12 +6,7 @@ export interface FeedResponseItem {
     distanceKm: number;
     description: string;
     commentCount: number;
-    votes: {
-        [userId: string]: UserVote
-    }
-}
-
-type UserVote = {
-    voteType: 'up' | 'down',
-    lastEventTimestamp: number;
+    upvotes: number;
+    downvotes: number;
+    hasVoted: 'up' | 'down' | null;
 }

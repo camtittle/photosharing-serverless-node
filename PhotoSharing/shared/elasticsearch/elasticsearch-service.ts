@@ -17,7 +17,7 @@ export class ElasticsearchService {
 
     private readonly client: Client;
     private readonly indexName: string;
-    private readonly getFeedItemLimit = 10;
+    private readonly getFeedItemLimit = 30;
 
     private constructor() {
         const opts: ClientOptions = {
@@ -59,7 +59,32 @@ export class ElasticsearchService {
         return true;
     }
 
-    public async updateItem(id: string, updateScript: string, scriptParams: any) {
+    public async updateItem(id: string, partialDoc: any) {
+        if (!id || !partialDoc) {
+            throw new Error('Cannot perform update to ES index. Missing required params');
+        }
+
+        Log(this.tag, 'Updating item', id);
+
+        const params = {
+            index: this.indexName,
+            id: id,
+            body: {
+                doc: partialDoc
+            }
+        };
+
+        const response = await this.client.update(params);
+
+        if (!ElasticsearchService.isResponseSuccess(response)) {
+            throw new Error('Error updating item in ES: \n' +
+                'Status code: ' + response.statusCode +
+                '\n. Body: \n'+ response.body);
+        }
+
+    }
+
+    public async scriptUpdateItem(id: string, updateScript: string, scriptParams: any) {
         if (!id || !updateScript) {
             throw new Error('Cannot perform update to ES index. Missing required params');
         }

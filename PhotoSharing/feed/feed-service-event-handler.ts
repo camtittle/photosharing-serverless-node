@@ -84,7 +84,7 @@ async function handleCommentEvent(event: Event) {
     };
 
     const elasticsearchService = ElasticsearchService.getInstance();
-    await elasticsearchService.updateItem(body.postId, updateScript, params);
+    await elasticsearchService.scriptUpdateItem(body.postId, updateScript, params);
 
     Log(tag, 'Successfully updated commentCount for post ID ' + body.postId + ' in Elasticsearch index');
 
@@ -98,22 +98,19 @@ async function handleVoteEvent(event: Event) {
     Log(tag, 'FeedService received', body.voteType, 'VOTE event');
 
     const userId = body.userId;
-    const updateScript = `
-        if (!ctx._source.votes.containsKey('${userId}')
-            || ctx._source.votes.${userId}.lastEventTimestamp < params.eventTimestamp) {
-                ctx._source.votes.${userId}.lastEventTimestamp = params.eventTimestamp;
-                ctx._source.votes.${userId}.voteType = params.voteType; 
+    const partialDocUpdate = {
+        votes: {
+            [body.userId]: {
+                voteType: body.voteType,
+                eventTimestamp: event.timestamp
+            }
         }
-    `;
-
-    Log(tag, updateScript);
-    const params = {
-        eventTimestamp: event.timestamp,
-        voteType: body.voteType
     };
 
+    Log(tag, partialDocUpdate);
+
     const elasticsearchService = ElasticsearchService.getInstance();
-    await elasticsearchService.updateItem(body.postId, updateScript, params);
+    await elasticsearchService.updateItem(body.postId, partialDocUpdate);
 
     Log(tag, 'Successfully updated votes for post ID ' + body.postId + ' in Elasticsearch index');
 

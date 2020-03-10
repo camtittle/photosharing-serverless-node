@@ -4,8 +4,13 @@ import {ElasticsearchService} from "../shared/elasticsearch/elasticsearch-servic
 import {IndexPostItem} from "../shared/elasticsearch/model/index-post-item";
 import {FeedResponseItem} from "./model/feed-response-item";
 import {GetFeedRequest} from "./model/get-feed-request";
+import {CognitoUtils} from "../shared/cognito/cognito-utils";
 
 export const get = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+    const identity = CognitoUtils.getIdentity(event.requestContext);
+    if (!identity) {
+        return Responses.Unauthorized();
+    }
 
     const request = event.queryStringParameters;
     if (!validateGetFeedModel(request)) {
@@ -16,7 +21,7 @@ export const get = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult
     const result = await esService.getFeed(request.lat, request.lon);
 
     if (!!result) {
-        return Responses.Ok(mapIndexItemsToFeedItems(request.lat, request.lon, result));
+        return Responses.Ok(mapIndexItemsToFeedItems(identity.userId, request.lat, request.lon, result));
     } else {
         return Responses.InternalServerError();
     }
@@ -24,39 +29,37 @@ export const get = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult
     return Responses.Ok(result);
 };
 
-export const deleteItem = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+function mapIndexItemsToFeedItems(userId: string, lat: number, lon: number, indexItems: IndexPostItem[]): FeedResponseItem[] {
+    return indexItems.map(x => {
 
-    if (!event.body) {
-        return Responses.badRequest();
-    }
-    const esService = ElasticsearchService.getInstance();
+        // Map votes on to vote counts and check if this user has voted
+        let upvotes = 0, downvotes = 0, hasVoted = null;
+        if (x.votes) {
+            Object.keys(x.votes).forEach(v => {
+                if (x.votes[v].voteType === 'up') {
+                    upvotes++;
+                } else if (x.votes[v].voteType === 'down') {
+                    downvotes++;
+                }
+                if (v === userId) {
+                    hasVoted = x.votes[v].voteType;
+                }
+            });
+        }
 
-    const body = JSON.parse(event.body);
-    //const result = await esService.deleteItem(body.id);
-    const updateScript = 'if (!ctx._source.containsKey(\'lastCommentEventTimestamp\') ' +
-        '|| ctx._source.lastCommentEventTimestamp < params.eventTimestamp) {' +
-            'ctx._source.lastCommentEventTimestamp = params.eventTimestamp; ' +
-            'ctx._source.commentCount = params.commentCount }';
-    const params = {
-        eventTimestamp: 2,
-        commentCount: 5
-    };
-    const result = await esService.updateItem(body.id, updateScript, params);
-
-    return Responses.Ok();
-};
-
-function mapIndexItemsToFeedItems(lat: number, lon: number, indexItems: IndexPostItem[]): FeedResponseItem[] {
-    return indexItems.map(x => ({
-        id: x.postId,
-        userId: x.userId,
-        imageUrl: x.imageUrl,
-        commentCount: x.commentCount,
-        distanceKm: calcDistance(lat, lon, x.location.lat, x.location.lon),
-        timestamp: x.timestamp,
-        description: x.description,
-        votes: x.votes
-    }));
+        return {
+            id: x.postId,
+            userId: x.userId,
+            imageUrl: x.imageUrl,
+            commentCount: x.commentCount,
+            distanceKm: calcDistance(lat, lon, x.location.lat, x.location.lon),
+            timestamp: x.timestamp,
+            description: x.description,
+            upvotes: upvotes,
+            downvotes: downvotes,
+            hasVoted: hasVoted
+        };
+    });
 }
 
 function calcDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

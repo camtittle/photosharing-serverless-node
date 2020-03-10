@@ -120,13 +120,10 @@ functions:
       - http:
           path: feed
           method: get
-
-  deleteFeedItem:
-    handler: feed/feed-service-handler.deleteItem
-    events:
-      - http:
-          path: feed
-          method: delete
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
 
   publishEventDebug:
     handler: eventbus/handler/eventbus-handler.publishDebug
