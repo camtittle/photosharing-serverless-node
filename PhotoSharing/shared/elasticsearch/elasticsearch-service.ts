@@ -9,7 +9,6 @@ export class ElasticsearchService {
 
     private readonly nodeUrl = 'https://search-photosh-elasti-11452jc84f2fb-gahonamyoqwnq5gnsziehogpee.eu-central-1.es.amazonaws.com';
 
-    // TODO swap these
     private readonly localIndexName = 'local-posts-2';
     private readonly devIndexName = 'dev-posts-2';
 

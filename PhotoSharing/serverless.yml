@@ -9,9 +9,9 @@ provider:
   runtime: nodejs12.x
   stage: dev
   region: eu-central-1
+  profile: default
   iamManagedPolicies:
     - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-
   iamRoleStatements:
     - Effect: 'Allow'
       Action:
@@ -318,7 +318,6 @@ resources:
           VolumeType: "gp2"
           VolumeSize: 10
         AccessPolicies:
-          # TEMPORARY ACCESS POLICY - NO SECURITY!
           Version: "2012-10-17"
           Statement:
             -
