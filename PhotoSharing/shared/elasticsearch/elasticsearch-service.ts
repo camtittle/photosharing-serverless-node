@@ -2,12 +2,13 @@ import {ApiResponse, Client, ClientOptions} from '@elastic/elasticsearch'
 import {isRunningLocally} from "../EnvironmentUtil";
 import {IndexPostItem} from "./model/index-post-item";
 import Log from "../logging/log";
+import {config} from "./config";
 
 export class ElasticsearchService {
 
     private static instance: ElasticsearchService;
 
-    private readonly nodeUrl = 'https://search-photosh-elasti-11452jc84f2fb-gahonamyoqwnq5gnsziehogpee.eu-central-1.es.amazonaws.com';
+    private readonly nodeUrl = config.nodeUrl;
 
     private readonly localIndexName = 'local-posts-2';
     private readonly devIndexName = 'dev-posts-2';
@@ -19,6 +20,10 @@ export class ElasticsearchService {
     private readonly getFeedItemLimit = 30;
 
     private constructor() {
+        if (!this.nodeUrl) {
+            throw new Error("Elasticsearch node URL not configured");
+        }
+
         const opts: ClientOptions = {
             node: this.nodeUrl
         };

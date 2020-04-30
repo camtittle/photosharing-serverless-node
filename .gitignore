@@ -1,3 +1,4 @@
 PhotoSharing/.dynamodb/
 .idea/
 PhotoSharing/.build/
+PhotoSharing/shared/elasticsearch/config.ts

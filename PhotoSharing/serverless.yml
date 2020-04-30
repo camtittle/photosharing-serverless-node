@@ -317,6 +317,9 @@ resources:
           EBSEnabled: true
           VolumeType: "gp2"
           VolumeSize: 10
+        VPCOptions:
+          SubnetIds:
+            - "subnet-7c2a8816"
         AccessPolicies:
           Version: "2012-10-17"
           Statement:
