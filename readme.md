@@ -1,4 +1,4 @@
-##Final year project
+## Final year project
 
 Event-driven microservices REST API for a social media app. Uses AWS Lambda, DynamoDB, custom built pub/sub event bus, and the Serverless Framework.
 
