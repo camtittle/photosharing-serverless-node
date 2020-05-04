@@ -29,6 +29,28 @@ export const get = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult
     return Responses.Ok(result);
 };
 
+export const createIndex = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+
+    const esService = ElasticsearchService.getInstance();
+    await esService.createIndex();
+
+    return Responses.Ok();
+};
+
+export const getIndex = async (event: APIGatewayEvent): Promise<APIGatewayProxyResult> => {
+
+    const esService = ElasticsearchService.getInstance();
+
+    try {
+        const index = await esService.getIndexDetails();
+        return Responses.Ok(index);
+    } catch (error) {
+        console.error(error);
+        return Responses.InternalServerError(error);
+    }
+};
+
+
 function mapIndexItemsToFeedItems(userId: string, lat: number, lon: number, indexItems: IndexPostItem[]): FeedResponseItem[] {
     return indexItems.map(x => {
 

@@ -1,9 +1,5 @@
 service: photosharing
 
-# You can pin your business to only deploy with a specific Serverless version
-# Check out our docs for more details
-# frameworkVersion: "=X.X.X"
-
 provider:
   name: aws
   runtime: nodejs12.x
@@ -116,6 +112,11 @@ functions:
 
   getFeed:
     handler: feed/feed-service-handler.get
+    vpc:
+      securityGroupIds:
+        - "sg-817dc1e4"
+      subnetIds:
+        - "subnet-7c2a8816"
     events:
       - http:
           path: feed
@@ -124,6 +125,30 @@ functions:
             type: COGNITO_USER_POOLS
             authorizerId:
               Ref: ApiGatewayAuthorizer
+
+  createIndex:
+    handler: feed/feed-service-handler.createIndex
+    vpc:
+      securityGroupIds:
+        - "sg-817dc1e4"
+      subnetIds:
+        - "subnet-7c2a8816"
+    events:
+      - http:
+          path: feed/create-index
+          method: post
+
+  getIndex:
+    handler: feed/feed-service-handler.getIndex
+    vpc:
+      securityGroupIds:
+        - "sg-817dc1e4"
+      subnetIds:
+        - "subnet-7c2a8816"
+    events:
+      - http:
+          path: feed/index
+          method: get
 
   publishEventDebug:
     handler: eventbus/handler/eventbus-handler.publishDebug
@@ -170,6 +195,11 @@ functions:
   feedServiceEventHandler:
     handler: feed/feed-service-event-handler.handler
     name: feedServiceEventHandler
+    vpc:
+      securityGroupIds:
+        - "sg-817dc1e4"
+      subnetIds:
+        - "subnet-7c2a8816"
 
   getEvents:
     handler: eventbus/handler/eventbus-handler.getDebug
@@ -320,6 +350,8 @@ resources:
         VPCOptions:
           SubnetIds:
             - "subnet-7c2a8816"
+          SecurityGroupIds:
+            - "sg-817dc1e4"
         AccessPolicies:
           Version: "2012-10-17"
           Statement:
@@ -330,8 +362,6 @@ resources:
               Action:
                 "es:*"
               Resource: "arn:aws:es:*:*:domain/*/*"
-
-
 
 custom:
   dynamodb:

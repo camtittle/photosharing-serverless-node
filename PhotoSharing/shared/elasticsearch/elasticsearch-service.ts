@@ -143,6 +143,36 @@ export class ElasticsearchService {
         }
     }
 
+    public async createIndex(): Promise<void> {
+        Log(this.tag, 'Creating index with geo mapping');
+
+        const result = await this.client.indices.create({
+            index: this.indexName,
+            body: {
+                mappings: {
+                    properties: {
+                        location: {
+                            type: "geo_point"
+                        }
+                    }
+                }
+            }
+        });
+
+        Log(this.tag, "Result:");
+        Log(this.tag, result);
+    }
+
+    public async getIndexDetails(): Promise<any> {
+        Log(this.tag, 'Getting index details');
+
+        const result = await this.client.indices.get({
+            index: this.indexName
+        });
+
+        return result;
+    }
+
     private static isResponseSuccess(response: ApiResponse): boolean {
         return !!response.statusCode && response.statusCode >= 200 && response.statusCode <= 299;
     }
